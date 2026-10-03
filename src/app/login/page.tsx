@@ -21,6 +21,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <Field label="Email" name="email" type="email" autoComplete="email" required />
           <Field label="Password" name="password" type="password" autoComplete="current-password" required />
         </ActionForm>
+        <Link href="/forgot-password" className="mt-4 inline-block text-sm text-brand hover:underline">
+          Forgot your password?
+        </Link>
       </Card>
       <p className="mt-4 text-sm text-muted">
         New here?{" "}

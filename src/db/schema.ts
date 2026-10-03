@@ -44,6 +44,13 @@ export const sessions = pgTable("sessions", {
   expiresAt: timestamp({ withTimezone: true }).notNull(),
 });
 
+export const passwordResets = pgTable("password_resets", {
+  id: text().primaryKey(), // sha256 of the emailed token
+  userId: integer().notNull().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp({ withTimezone: true }).notNull(),
+  usedAt: timestamp({ withTimezone: true }),
+});
+
 export const studentProfiles = pgTable("student_profiles", {
   userId: integer().primaryKey().references(() => users.id, { onDelete: "cascade" }),
   university: text(),

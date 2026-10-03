@@ -8,7 +8,8 @@ import { companies, studentProfiles, users } from "@/db/schema";
 import { endSession, homeFor, startSession } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { fieldError, safeNext } from "@/lib/validation";
-import type { ActionState } from "@/server/errors";
+import { attempt, type ActionState } from "@/server/errors";
+import { requestPasswordReset, resetPassword } from "@/server/password-reset";
 
 const email = z.string().trim().toLowerCase().email("Enter a valid email.");
 // Same cost as a real check, so response time doesn't reveal which emails exist.
@@ -63,4 +64,23 @@ export async function register(_: ActionState, form: FormData): Promise<ActionSt
 export async function logout() {
   await endSession();
   redirect("/");
+}
+
+export async function forgotPassword(_: ActionState, form: FormData): Promise<ActionState> {
+  const parsed = email.safeParse(form.get("email") ?? "");
+  if (!parsed.success) return { error: "Enter a valid email.", field: "email" };
+  await requestPasswordReset(parsed.data);
+  // Same answer whether or not the account exists.
+  return { ok: "If an account uses that email, we've sent a reset link. It works once, for 30 minutes." };
+}
+
+export async function completeReset(token: string, _: ActionState, form: FormData): Promise<ActionState> {
+  const parsed = z.string().min(8, "Password must be at least 8 characters.").max(200).safeParse(form.get("password") ?? "");
+  if (!parsed.success) return { error: parsed.error.issues[0].message, field: "password" };
+  const r = await attempt(async () => {
+    const userId = await resetPassword(token, parsed.data);
+    await startSession(userId);
+  });
+  if (r?.error) return r;
+  redirect("/dashboard");
 }
