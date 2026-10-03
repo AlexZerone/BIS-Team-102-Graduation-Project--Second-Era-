@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Getting Started - Help Center{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-primary">Getting Started</h1>
+                <p class="lead text-muted">Your guide to navigating the Sec Era Platform</p>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Step 1: Create Your Account</h3>
+                </div>
+                <div class="card-body">
+                    <p>Welcome to Sec Era! First, you'll need to create an account:</p>
+                    <ul>
+                        <li><strong>Students:</strong> Sign up to access courses, track progress, and apply for jobs</li>
+                        <li><strong>Instructors:</strong> Apply to teach courses and create assessments</li>
+                        <li><strong>Companies:</strong> Post job openings and find qualified candidates</li>
+                    </ul>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Create Account</a>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Step 2: Explore Courses</h3>
+                </div>
+                <div class="card-body">
+                    <p>Once logged in, browse our extensive course catalog:</p>
+                    <ul>
+                        <li>Filter by difficulty level, topic, and subscription tier</li>
+                        <li>Preview course descriptions and requirements</li>
+                        <li>Enroll in courses that match your learning goals</li>
+                        <li>Track your progress and earn certificates</li>
+                    </ul>
+                    <a href="{{ url_for('courses.courses') }}" class="btn btn-success">Browse Courses</a>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0"><i class="fas fa-briefcase me-2"></i>Step 3: Find Opportunities</h3>
+                </div>
+                <div class="card-body">
+                    <p>Connect with potential employers and advance your career:</p>
+                    <ul>
+                        <li>Browse job listings from top cybersecurity companies</li>
+                        <li>Apply for positions that match your skills</li>
+                        <li>Get personalized job recommendations</li>
+                        <li>Track your application status</li>
+                    </ul>
+                    <a href="{{ url_for('jobs.jobs') }}" class="btn btn-info">View Jobs</a>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h3 class="mb-0"><i class="fas fa-crown me-2"></i>Step 4: Upgrade Your Experience</h3>
+                </div>
+                <div class="card-body">
+                    <p>Unlock premium features with our subscription plans:</p>
+                    <ul>
+                        <li><strong>Freemium:</strong> Access to introductory courses</li>
+                        <li><strong>Standard:</strong> Full course access and certifications</li>
+                        <li><strong>Premium:</strong> All features plus personalized coaching</li>
+                    </ul>
+                    <a href="{{ url_for('subscriptions.plans') }}" class="btn btn-warning">View Plans</a>
+                </div>
+            </div>
+
+            <div class="text-center mt-5">
+                <h4>Need Help?</h4>
+                <p class="text-muted">Our support team is here to help you succeed.</p>
+                <a href="{{ url_for('help.contact') }}" class="btn btn-outline-primary">Contact Support</a>
+                <a href="{{ url_for('help.faq') }}" class="btn btn-outline-secondary ms-2">View FAQ</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -73,7 +73,6 @@ class AuthFlowTester:
         """Test direct database registration with correct approval status"""
         print("\n📝 Testing Database Registration Logic...")
         
-        results = []
         for user in self.test_users:
             try:
                 # Create user with correct approval status
@@ -94,78 +93,64 @@ class AuthFlowTester:
                 # Verify the user was created correctly
                 created_user = get_record('SELECT * FROM users WHERE Email = %s', (user['email'],))
                 
-                if created_user:
-                    actual_approval = created_user.get('ApprovalStatus')
-                    actual_status = created_user.get('Status')
-                    
-                    if actual_approval == user['expected_approval'] and actual_status == user['expected_status']:
-                        print(f"✅ {user['type'].title()}: ApprovalStatus={actual_approval}, Status={actual_status}")
-                        results.append(True)
-                    else:
-                        print(f"❌ {user['type'].title()}: Expected ApprovalStatus={user['expected_approval']}, Status={user['expected_status']}")
-                        print(f"   Got ApprovalStatus={actual_approval}, Status={actual_status}")
-                        results.append(False)
-                else:
-                    print(f"❌ {user['type'].title()}: User not created")
-                    results.append(False)
+                assert created_user is not None, f"{user['type'].title()}: User should be created"
+                
+                actual_approval = created_user.get('ApprovalStatus')
+                actual_status = created_user.get('Status')
+                
+                assert actual_approval == user['expected_approval'], \
+                    f"{user['type'].title()}: Expected ApprovalStatus={user['expected_approval']}, got {actual_approval}"
+                assert actual_status == user['expected_status'], \
+                    f"{user['type'].title()}: Expected Status={user['expected_status']}, got {actual_status}"
+                
+                print(f"✅ {user['type'].title()}: ApprovalStatus={actual_approval}, Status={actual_status}")
                     
             except Exception as e:
                 print(f"❌ {user['type'].title()}: Error - {e}")
-                results.append(False)
-        
-        return all(results)
-
-    def test_login_logic(self):
-        """Test login logic respects approval status"""
-        print("\n🔐 Testing Login Logic...")
-        
-        results = []
-        for user in self.test_users:
-            try:
-                # Get user from database
-                db_user = get_record('SELECT * FROM users WHERE Email = %s', (user['email'],))
-                
-                if not db_user:
-                    print(f"❌ {user['type'].title()}: User not found in database")
-                    results.append(False)
-                    continue
-                
-                # Test login logic
-                can_login = True
-                login_message = "Login allowed"
-                
-                # Check approval status
-                if db_user.get('ApprovalStatus') == 'Pending':
-                    can_login = False
-                    login_message = "Account pending approval"
-                
-                # Check user status
-                elif db_user.get('Status') != 'Active':
-                    can_login = False
-                    login_message = "Account not active"
-                
-                # Check password
-                elif not check_password_hash(db_user['Password'], user['password']):
-                    can_login = False
-                    login_message = "Invalid password"
-                
-                # Determine expected result
-                expected_login = (user['type'] == 'student')  # Only students should be able to login
-                
-                if can_login == expected_login:
+                assert False, f"{user['type'].title()}: Registration failed with error: {e}"
+    
+        def test_login_logic(self):
+            """Test login logic respects approval status"""
+            print("\n🔐 Testing Login Logic...")
+            
+            for user in self.test_users:
+                try:
+                    # Get user from database
+                    db_user = get_record('SELECT * FROM users WHERE Email = %s', (user['email'],))
+                    
+                    assert db_user is not None, f"{user['type'].title()}: User should exist in database"
+                    
+                    # Test login logic
+                    can_login = True
+                    login_message = "Login allowed"
+                    
+                    # Check approval status
+                    if db_user.get('ApprovalStatus') == 'Pending':
+                        can_login = False
+                        login_message = "Account pending approval"
+                    
+                    # Check user status
+                    elif db_user.get('Status') != 'Active':
+                        can_login = False
+                        login_message = "Account not active"
+                    
+                    # Check password
+                    elif not check_password_hash(db_user['Password'], user['password']):
+                        can_login = False
+                        login_message = "Invalid password"
+                    
+                    # Determine expected result
+                    expected_login = (user['type'] == 'student')  # Only students should be able to login
+                    
+                    assert can_login == expected_login, \
+                        f"{user['type'].title()}: Expected {'Allow' if expected_login else 'Block'}, Got: {'Allow' if can_login else 'Block'}"
+                    
                     status_icon = "✅" if can_login else "🚫"
                     print(f"{status_icon} {user['type'].title()}: {login_message} (Expected)")
-                    results.append(True)
-                else:
-                    print(f"❌ {user['type'].title()}: Login result mismatch")
-                    print(f"   Expected: {'Allow' if expected_login else 'Block'}, Got: {'Allow' if can_login else 'Block'}")
-                    results.append(False)
-                    
-            except Exception as e:
-                print(f"❌ {user['type'].title()}: Error - {e}")
-                results.append(False)
-        
-        return all(results)
+                        
+                except Exception as e:
+                    print(f"❌ {user['type'].title()}: Error - {e}")
+                    assert False, f"{user['type'].title()}: Login test failed with error: {e}"
 
     def test_approval_workflow(self):
         """Test admin approval workflow"""

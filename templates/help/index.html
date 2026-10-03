@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Help Center{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-primary">Help Center</h1>
+                <p class="lead text-muted">Find answers to your questions and get the support you need</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-question-circle fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">Frequently Asked Questions</h5>
+                            <p class="card-text">Find quick answers to common questions about our platform, courses, and features.</p>
+                            <a href="{{ url_for('help.faq') }}" class="btn btn-primary">View FAQ</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-rocket fa-3x text-success mb-3"></i>
+                            <h5 class="card-title">Getting Started</h5>
+                            <p class="card-text">New to our platform? Learn how to set up your account and begin your learning journey.</p>
+                            <a href="{{ url_for('help.getting_started') }}" class="btn btn-success">Get Started</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-envelope fa-3x text-info mb-3"></i>
+                            <h5 class="card-title">Contact Support</h5>
+                            <p class="card-text">Can't find what you're looking for? Reach out to our support team for personalized help.</p>
+                            <a href="{{ url_for('help.contact') }}" class="btn btn-info">Contact Us</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-book fa-3x text-warning mb-3"></i>
+                            <h5 class="card-title">About Sec Era</h5>
+                            <p class="card-text">Learn more about our mission, values, and the team behind our cybersecurity platform.</p>
+                            <a href="{{ url_for('help.about') }}" class="btn btn-warning">About Us</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5 text-center">
+                <h4>Need More Help?</h4>
+                <p class="text-muted">Our support team is available 24/7 to assist you with any questions or concerns.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('help.contact') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-envelope me-2"></i>Send Message
+                    </a>
+                    <a href="{{ url_for('help.privacy') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy Policy
+                    </a>
+                    <a href="{{ url_for('help.terms') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-contract me-2"></i>Terms of Service
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

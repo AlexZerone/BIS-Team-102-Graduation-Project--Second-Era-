@@ -6,6 +6,7 @@ from forms import ProfileForm, PasswordChangeForm
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 profile_bp = Blueprint('profile', __name__)
 
@@ -43,6 +44,21 @@ def profile():
         # Get user stats
         stats = get_user_stats(user_id, user_type)
 
+        # Add approval status and subscription info for display
+        approval_status = None
+        subscription_info = None
+        if user_type == 'student' and profile:
+            subscription_info = {
+                'tier': profile.get('SubscriptionTier'),
+                'status': profile.get('SubscriptionStatus'),
+                'start': profile.get('SubscriptionStart'),
+                'end': profile.get('SubscriptionEnd')
+            }
+        elif user_type == 'instructor' and profile:
+            approval_status = profile.get('ApprovalStatus')
+        elif user_type == 'company' and profile:
+            approval_status = profile.get('ApprovalStatus')
+
         if request.method == 'POST':
             if form.validate_on_submit():
                 # Update user basic information
@@ -51,36 +67,66 @@ def profile():
                     SET First = %s, Last = %s, Email = %s
                     WHERE UserID = %s
                 ''', (form.first_name.data, form.last_name.data, form.email.data, user_id))
-
                 # Update profile based on user type
                 if user_type == 'student':
                     execute_query('''
                         UPDATE students 
-                        SET University = %s, Major = %s, GPA = %s
+                        SET University = %s, Major = %s, GPA = %s, Bio = %s, SubscriptionTier = %s, SubscriptionStatus = %s
                         WHERE UserID = %s
                     ''', (
                         request.form.get('university'),
                         request.form.get('major'),
                         request.form.get('gpa'),
+                        request.form.get('bio'),
+                        request.form.get('subscription_tier'),
+                        request.form.get('subscription_status'),
                         user_id
                     ))
-
-                flash('Profile updated successfully', 'success')
+                elif user_type == 'instructor':
+                    execute_query('''
+                        UPDATE instructors 
+                        SET Department = %s, Specialization = %s, Experience = %s, Bio = %s, Qualifications = %s, ApprovalStatus = %s
+                        WHERE UserID = %s
+                    ''', (
+                        request.form.get('department'),
+                        request.form.get('specialization'),
+                        request.form.get('experience'),
+                        request.form.get('bio'),
+                        request.form.get('qualifications'),
+                        request.form.get('approval_status'),
+                        user_id
+                    ))
+                elif user_type == 'company':
+                    execute_query('''
+                        UPDATE companies 
+                        SET Name = %s, Industry = %s, Location = %s, Bio = %s, Website = %s, CompanySize = %s, ApprovalStatus = %s
+                        WHERE UserID = %s
+                    ''', (
+                        request.form.get('company_name'),
+                        request.form.get('industry'),
+                        request.form.get('location'),
+                        request.form.get('bio'),
+                        request.form.get('website'),
+                        request.form.get('company_size'),
+                        request.form.get('approval_status'),
+                        user_id
+                    ))
+                flash('Profile updated successfully!', 'success')
                 return redirect(url_for('profile.profile'))
-
-        # For GET request, populate form with current data
-        if request.method == 'GET':
+        else:
+            # For GET request, populate form with current data
             form.first_name.data = user['First']
             form.last_name.data = user['Last']
             form.email.data = user['Email']
 
-        return render_template('profile.html', 
+        return render_template('profile/profile.html', 
                              user=user,
                              profile=profile,
                              form=form,
                              password_form=password_form,
+                             approval_status=approval_status,
+                             subscription_info=subscription_info,
                              **stats)
-
     except Exception as e:
         flash(f'Error accessing profile: {str(e)}', 'danger')
         return redirect(url_for('dashboard.dashboard'))
@@ -186,7 +232,7 @@ def settings():
             else:
                 flash('Passwords do not match', 'danger')
 
-        return render_template('settings.html')
+        return render_template('profile/settings.html')
 
     except Exception as e:
         flash(f'Error updating settings: {str(e)}', 'danger')

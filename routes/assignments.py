@@ -55,11 +55,11 @@ def assignments():
                 ORDER BY a.DueDate ASC
             ''', (instructor_id,))
 
-        return render_template('assignments.html', assessments=assessments, user_type=user_type)
+        return render_template('assessments/assignments.html', assessments=assessments, user_type=user_type)
 
     except Exception as e:
         flash(f'Error loading assignments: {str(e)}', 'danger')
-        return render_template('assignments.html', assessments=[], user_type=user_type)
+        return render_template('assessments/assignments.html', assessments=[], user_type=user_type)
 
 @assignments_bp.route('/assessment/<int:AssessID>')
 @login_required
@@ -100,7 +100,7 @@ def assessment_detail(AssessID):
                 WHERE sa.AssessmentID = %s
             ''', (AssessID,))
         
-        return render_template('assessment_detail.html', 
+        return render_template('assessments/assessment_detail.html', 
                              assessment=assessment,
                              submission=submission,
                              submissions=submissions)
@@ -131,13 +131,12 @@ def manage_assignments():
             JOIN instructor_courses ic ON c.CourseID = ic.CourseID
             WHERE ic.InstructorID = %s
             ORDER BY a.DueDate ASC
-        ''', (instructor_id,))
-        
-        return render_template('manage_assignments.html', assignments=assignments)
+        ''', (instructor_id,))        
+        return render_template('assessments/manage_assignments.html', assignments=assignments)
 
     except Exception as e:
         flash(f"Error loading instructor assignments: {str(e)}", "danger")
-        return render_template('manage_assignments.html', assignments=[])
+        return render_template('assessments/manage_assignments.html', assignments=[])
 
 
 @assignments_bp.route('/submit-assessment/<int:AssessID>', methods=['POST'])
@@ -234,7 +233,7 @@ def create_assessment():
                   # Validate percentage is in valid range
                 if weight_percent < 0 or weight_percent > 100:
                     flash('Weight must be between 0 and 100%', 'danger')
-                    return render_template('create_assessment.html', courses=courses)
+                    return render_template('assessments/create_assessment.html', courses=courses)
                     
                 # Convert percentage to decimal (0-1 range) for database storage
                 weight = weight_percent / 100.0
@@ -242,14 +241,14 @@ def create_assessment():
                 # Double check decimal is in valid range for database constraint
                 if weight < 0 or weight > 1:
                     flash('Error converting weight to proper format', 'danger')
-                    return render_template('create_assessment.html', courses=courses)
+                    return render_template('assessments/create_assessment.html', courses=courses)
             except ValueError:
                 flash('Weight must be a valid number', 'danger')
-                return render_template('create_assessment.html', courses=courses)
+                return render_template('assessments/create_assessment.html', courses=courses)
               # Validate required fields
             if not all([title, description, due_date, course_id]):
                 flash('All fields are required', 'danger')
-                return render_template('create_assessment.html', courses=courses)
+                return render_template('assessments/create_assessment.html', courses=courses)
             
             # Create the assessment
             execute_query('''
@@ -261,7 +260,7 @@ def create_assessment():
             flash('Assessment created successfully!', 'success')
             return redirect(url_for('assignments.assignments'))
         
-        return render_template('create_assessment.html', courses=courses)
+        return render_template('assessments/create_assessment.html', courses=courses)
     
     except Exception as e:
         flash(f'Error creating assessment: {str(e)}', 'danger')
@@ -332,7 +331,7 @@ def review_submission(AssessID, StudentID):
             flash("Submission graded successfully!", "success")
             return redirect(url_for('assignments.assessment_detail', AssessID=AssessID))
         
-        return render_template('review_submission.html', 
+        return render_template('assessments/review_submission.html', 
                              assessment=assessment_course,
                              submission=submission)
     

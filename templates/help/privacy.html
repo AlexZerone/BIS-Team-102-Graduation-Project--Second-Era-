@@ -11,7 +11,7 @@
             Privacy Policy
         </h1>
         <p class="lead text-muted">Your privacy is important to us</p>
-        <p class="text-muted">Last updated: <strong>{{ moment().strftime('%B %d, %Y') }}</strong></p>
+        <p class="text-muted">Last updated: <strong>{{ moment(last_updated).format('LL') }}</strong></p>
     </div>
 
     <!-- Table of Contents -->

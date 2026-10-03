@@ -5,7 +5,7 @@ Handles subscription plans, payments, and billing
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from models import get_record, get_records, execute_query
 from permissions import login_required, role_required
-from datetime import datetime, timedelta
+from datetime import datetime as dt, timedelta
 import json
 import uuid
 
@@ -34,12 +34,75 @@ def current_subscription():
     """Show current subscription details"""
     try:
         user_id = session['user_id']
-        
-        # Get student subscription info
+          # Get student subscription info with proper tier mapping
         student = get_record('''
-            SELECT s.*, sp.Name as PlanName, sp.Description, sp.Price, sp.BillingCycle, sp.Features
+            SELECT s.*, 
+                   CASE 
+                       WHEN s.SubscriptionTier = 'freemium' THEN 
+                           (SELECT Name FROM subscription_plans WHERE Name = 'Freemium')
+                       WHEN s.SubscriptionTier = 'basic' THEN 
+                           (SELECT Name FROM subscription_plans WHERE Name = 'Basic Plan')
+                       WHEN s.SubscriptionTier = 'standard' THEN 
+                           (SELECT Name FROM subscription_plans WHERE Name = 'Standard Plan')
+                       WHEN s.SubscriptionTier = 'premium' THEN 
+                           (SELECT Name FROM subscription_plans WHERE Name = 'Premium Plan')
+                       WHEN s.SubscriptionTier = 'premium_annual' THEN 
+                           (SELECT Name FROM subscription_plans WHERE Name = 'Premium Annual')
+                       ELSE 'Freemium'
+                   END as PlanName,
+                   CASE 
+                       WHEN s.SubscriptionTier = 'freemium' THEN 
+                           (SELECT Description FROM subscription_plans WHERE Name = 'Freemium')
+                       WHEN s.SubscriptionTier = 'basic' THEN 
+                           (SELECT Description FROM subscription_plans WHERE Name = 'Basic Plan')
+                       WHEN s.SubscriptionTier = 'standard' THEN 
+                           (SELECT Description FROM subscription_plans WHERE Name = 'Standard Plan')
+                       WHEN s.SubscriptionTier = 'premium' THEN 
+                           (SELECT Description FROM subscription_plans WHERE Name = 'Premium Plan')
+                       WHEN s.SubscriptionTier = 'premium_annual' THEN 
+                           (SELECT Description FROM subscription_plans WHERE Name = 'Premium Annual')
+                       ELSE 'Free access to introductory courses'
+                   END as Description,
+                   CASE 
+                       WHEN s.SubscriptionTier = 'freemium' THEN 
+                           (SELECT Price FROM subscription_plans WHERE Name = 'Freemium')
+                       WHEN s.SubscriptionTier = 'basic' THEN 
+                           (SELECT Price FROM subscription_plans WHERE Name = 'Basic Plan')
+                       WHEN s.SubscriptionTier = 'standard' THEN 
+                           (SELECT Price FROM subscription_plans WHERE Name = 'Standard Plan')
+                       WHEN s.SubscriptionTier = 'premium' THEN 
+                           (SELECT Price FROM subscription_plans WHERE Name = 'Premium Plan')
+                       WHEN s.SubscriptionTier = 'premium_annual' THEN 
+                           (SELECT Price FROM subscription_plans WHERE Name = 'Premium Annual')
+                       ELSE 0.00
+                   END as Price,
+                   CASE 
+                       WHEN s.SubscriptionTier = 'freemium' THEN 
+                           (SELECT BillingCycle FROM subscription_plans WHERE Name = 'Freemium')
+                       WHEN s.SubscriptionTier = 'basic' THEN 
+                           (SELECT BillingCycle FROM subscription_plans WHERE Name = 'Basic Plan')
+                       WHEN s.SubscriptionTier = 'standard' THEN 
+                           (SELECT BillingCycle FROM subscription_plans WHERE Name = 'Standard Plan')
+                       WHEN s.SubscriptionTier = 'premium' THEN 
+                           (SELECT BillingCycle FROM subscription_plans WHERE Name = 'Premium Plan')
+                       WHEN s.SubscriptionTier = 'premium_annual' THEN 
+                           (SELECT BillingCycle FROM subscription_plans WHERE Name = 'Premium Annual')
+                       ELSE 'monthly'
+                   END as BillingCycle,
+                   CASE 
+                       WHEN s.SubscriptionTier = 'freemium' THEN 
+                           (SELECT Features FROM subscription_plans WHERE Name = 'Freemium')
+                       WHEN s.SubscriptionTier = 'basic' THEN 
+                           (SELECT Features FROM subscription_plans WHERE Name = 'Basic Plan')
+                       WHEN s.SubscriptionTier = 'standard' THEN 
+                           (SELECT Features FROM subscription_plans WHERE Name = 'Standard Plan')
+                       WHEN s.SubscriptionTier = 'premium' THEN 
+                           (SELECT Features FROM subscription_plans WHERE Name = 'Premium Plan')
+                       WHEN s.SubscriptionTier = 'premium_annual' THEN 
+                           (SELECT Features FROM subscription_plans WHERE Name = 'Premium Annual')
+                       ELSE NULL
+                   END as Features
             FROM students s
-            LEFT JOIN subscription_plans sp ON s.SubscriptionTier = sp.Name
             WHERE s.UserID = %s
         ''', (user_id,))
         
@@ -68,13 +131,13 @@ def current_subscription():
                        MAX(InstallmentNumber) as last_installment,
                        MAX(TotalInstallments) as total_installments
                 FROM subscription_payments
-                WHERE StudentID = %s AND IsInstallment = 1 AND Status = 'completed'
-            ''', (student['StudentID'],))
+                WHERE StudentID = %s AND IsInstallment = 1 AND Status = 'completed'            ''', (student['StudentID'],))
         
         return render_template('subscriptions/current.html', 
                              student=student,
                              payment_history=payment_history,
-                             installment_info=installment_info)
+                             installment_info=installment_info,
+                             current_date=dt.now().date())
     
     except Exception as e:
         flash(f'Error loading subscription details: {str(e)}', 'danger')
@@ -169,21 +232,29 @@ def checkout():
                 UPDATE subscription_payments 
                 SET Status = 'completed', PaymentDate = NOW()
                 WHERE TransactionID = %s
-            ''', (transaction_id,))
-            
-            # Update student subscription
-            subscription_start = datetime.now().date()
+            ''', (transaction_id,))              # Update student subscription with proper tier mapping
+            subscription_start = dt.now().date()
             if plan['BillingCycle'] == 'monthly':
                 subscription_end = subscription_start + timedelta(days=30)
             else:  # annual
                 subscription_end = subscription_start + timedelta(days=365)
+            
+            # Map plan name to subscription tier enum
+            tier_mapping = {
+                'Freemium': 'freemium',
+                'Basic Plan': 'basic',
+                'Standard Plan': 'standard',
+                'Premium Plan': 'premium',
+                'Premium Annual': 'premium_annual'
+            }
+            subscription_tier = tier_mapping.get(plan['Name'], 'freemium')
             
             execute_query('''
                 UPDATE students 
                 SET SubscriptionTier = %s, SubscriptionStatus = 'active',
                     SubscriptionStart = %s, SubscriptionEnd = %s
                 WHERE StudentID = %s
-            ''', (plan['Name'], subscription_start, subscription_end, student['StudentID']))
+            ''', (subscription_tier, subscription_start, subscription_end, student['StudentID']))
             
             flash(f'Successfully subscribed to {plan["Name"]}!', 'success')
             
@@ -313,6 +384,40 @@ def process_installment(student_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@subscriptions_bp.route('/manage')
+@login_required
+@role_required(['student'])
+def manage():
+    """Manage current subscription settings"""
+    try:
+        user_id = session['user_id']
+        
+        # Get student info
+        student = get_record('SELECT * FROM students WHERE UserID = %s', (user_id,))
+        if not student:
+            flash('Student profile not found', 'danger')
+            return redirect(url_for('dashboard.dashboard'))
+        
+        # Get available plans for comparison
+        plans = get_records('''
+            SELECT * FROM subscription_plans 
+            WHERE IsActive = 1 
+            ORDER BY Price ASC
+        ''')
+        
+        # Parse features for each plan
+        for plan in plans:
+            if plan['Features']:
+                plan['Features'] = json.loads(plan['Features'])
+        
+        return render_template('subscriptions/manage.html', 
+                             student=student,
+                             plans=plans)
+    
+    except Exception as e:
+        flash(f'Error loading subscription management: {str(e)}', 'danger')
+        return redirect(url_for('subscriptions.current_subscription'))
+
 def calculate_proration(student, new_plan):
     """Calculate proration for mid-cycle upgrades"""
     # This is a simplified implementation
@@ -320,12 +425,11 @@ def calculate_proration(student, new_plan):
     proration_info = {
         'current_plan_refund': 0.00,
         'new_plan_charge': new_plan['Price'],
-        'total_due': new_plan['Price']
-    }
+        'total_due': new_plan['Price']    }
     
-    if student['SubscriptionEnd'] and student['SubscriptionEnd'] > datetime.now().date():
+    if student['SubscriptionEnd'] and student['SubscriptionEnd'] > dt.now().date():
         # Calculate remaining days
-        remaining_days = (student['SubscriptionEnd'] - datetime.now().date()).days
+        remaining_days = (student['SubscriptionEnd'] - dt.now().date()).days
         if remaining_days > 0:
             # Simple proration calculation
             current_plan = get_record(

@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from models import execute_query
 from datetime import datetime
 
-pages_bp = Blueprint('pages', __name__)
+pages_bp = Blueprint('pages', __name__, url_prefix='/pages')
 
 @pages_bp.route('/about')
 def about():
@@ -52,8 +52,3 @@ def privacy():
 def terms():
     """Terms of Service page"""
     return render_template('pages/terms.html')
-
-@pages_bp.route('/help')
-def help():
-    """Help/FAQ page"""
-    return render_template('pages/help.html')

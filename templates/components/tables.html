@@ -1,0 +1,116 @@
+<!-- Table Components -->
+{% macro data_table(headers, rows, table_id="dataTable", actions=[], sortable=True, searchable=True) %}
+<div class="table-responsive">
+    {% if searchable %}
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="{{ table_id }}Search" 
+                               placeholder="Search in table..." onkeyup="searchTable('{{ table_id }}')">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group" role="group">
+                        {% for action in actions %}
+                            <a href="{{ action.url }}" class="btn btn-{{ action.color or 'primary' }} btn-sm">
+                                {% if action.icon %}<i class="{{ action.icon }} me-1"></i>{% endif %}
+                                {{ action.text }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+    <table class="table table-hover table-striped {% if sortable %}sortable-table{% endif %}" id="{{ table_id }}">
+        <thead class="table-dark">
+            <tr>
+                {% for header in headers %}
+                    <th {% if sortable %}class="sortable" data-sort="{{ header.key or loop.index0 }}"{% endif %}>
+                        {{ header.text or header }}
+                        {% if sortable %}<i class="fas fa-sort ms-1"></i>{% endif %}
+                    </th>
+                {% endfor %}
+                {% if actions %}
+                    <th class="text-center">Actions</th>
+                {% endif %}
+            </tr>
+        </thead>        <tbody>
+            {% for row in rows %}
+                <tr>
+                    {% if row.cells %}
+                        {% for cell in row.cells %}
+                            <td>{{ cell }}</td>
+                        {% endfor %}
+                    {% else %}
+                        {% for cell in row %}
+                            <td>{{ cell }}</td>
+                        {% endfor %}
+                    {% endif %}
+                    {% if row.actions %}
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                {% for action in row.actions %}
+                                    <a href="{{ action.url }}" 
+                                       class="btn btn-{{ action.color or 'outline-primary' }}"
+                                       {% if action.confirm %}onclick="return confirm('{{ action.confirm }}')"{% endif %}
+                                       title="{{ action.title or action.text }}">
+                                        {% if action.icon %}<i class="{{ action.icon }}"></i>{% else %}{{ action.text }}{% endif %}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="{{ headers|length + (1 if actions else 0) }}" class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                        No data available
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{% macro status_badge(status, type="default") %}
+{% set status_lower = status.lower() %}
+{% if type == 'approval' %}
+    {% if status_lower == 'approved' %}
+        <span class="badge bg-success">{{ status }}</span>
+    {% elif status_lower == 'pending' %}
+        <span class="badge bg-warning">{{ status }}</span>
+    {% elif status_lower == 'rejected' %}
+        <span class="badge bg-danger">{{ status }}</span>
+    {% else %}
+        <span class="badge bg-secondary">{{ status }}</span>
+    {% endif %}
+{% elif type == 'activity' %}
+    {% if status_lower == 'active' %}
+        <span class="badge bg-success">{{ status }}</span>
+    {% elif status_lower == 'inactive' %}
+        <span class="badge bg-secondary">{{ status }}</span>
+    {% else %}
+        <span class="badge bg-primary">{{ status }}</span>
+    {% endif %}
+{% elif type == 'priority' %}
+    {% if status_lower == 'high' %}
+        <span class="badge bg-danger">{{ status }}</span>
+    {% elif status_lower == 'medium' %}
+        <span class="badge bg-warning">{{ status }}</span>
+    {% elif status_lower == 'low' %}
+        <span class="badge bg-success">{{ status }}</span>
+    {% else %}
+        <span class="badge bg-primary">{{ status }}</span>
+    {% endif %}
+{% else %}
+    <span class="badge bg-primary">{{ status }}</span>
+{% endif %}
+{% endmacro %}

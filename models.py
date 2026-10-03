@@ -65,6 +65,18 @@ def get_user_stats(user_id, user_type):
                 (student_id,)
             )['count'] if student_id else 0
 
+            # Get certificates count
+            stats['certificates'] = get_record(
+                'SELECT COUNT(*) as count FROM certificates WHERE StudentID = %s AND IsValid = 1',
+                (student_id,)
+            )['count'] if student_id else 0
+
+            # Get subscription info
+            student_profile = get_record('SELECT SubscriptionTier, SubscriptionStatus FROM students WHERE StudentID = %s', (student_id,))
+            if student_profile:
+                stats['subscription_tier'] = student_profile['SubscriptionTier']
+                stats['subscription_status'] = student_profile['SubscriptionStatus']
+
         elif user_type == 'instructor':
             # Get instructor's ID
             instructor = get_record('SELECT InstructorID FROM instructors WHERE UserID = %s', (user_id,))
@@ -97,6 +109,28 @@ def get_user_stats(user_id, user_type):
                 ''',
                 (instructor_id,)
             )['count'] if instructor_id else 0
+
+        elif user_type == 'company':
+            # Get company's ID
+            company = get_record('SELECT CompanyID FROM companies WHERE UserID = %s', (user_id,))
+            company_id = company['CompanyID'] if company else None
+
+            # Get posted jobs count
+            stats['posted_jobs'] = get_record(
+                'SELECT COUNT(*) as count FROM jobs WHERE CompanyID = %s',
+                (company_id,)
+            )['count'] if company_id else 0
+
+            # Get total applications received
+            stats['total_applications'] = get_record(
+                '''
+                SELECT COUNT(*) as count
+                FROM job_applications ja
+                JOIN jobs j ON ja.JobID = j.JobID
+                WHERE j.CompanyID = %s
+                ''',
+                (company_id,)
+            )['count'] if company_id else 0
 
     except Exception as e:
         print(f"Error getting user stats: {e}")

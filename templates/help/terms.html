@@ -11,7 +11,8 @@
             Terms of Service
         </h1>
         <p class="lead text-muted">Please read these terms carefully before using our platform</p>
-        <p class="text-muted">Last updated: <strong>{{ moment().strftime('%B %d, %Y') }}</strong></p>
+        <p class="text-muted">Last updated: <strong>{{ moment(last_updated).format('LL') }}</strong></p>
+
     </div>
 
     <!-- Table of Contents -->

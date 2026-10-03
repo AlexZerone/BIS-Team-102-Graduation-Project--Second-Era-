@@ -1,26 +1,77 @@
-from flask import render_template, request, redirect, url_for, flash, session, Blueprint, jsonify
+from flask import render_template, request, redirect, url_for, flash, session, Blueprint, jsonify, current_app
 from models import get_record, get_records, execute_query
 from permissions import login_required, role_required
 from extensions import mysql
+from forms import JobApplicationForm
 import sys
 import traceback
 import json
+import os
+import uuid
+from werkzeug.utils import secure_filename
+from datetime import datetime
 
 
 jobs_bp = Blueprint('jobs', __name__)
+
+# File upload configuration
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def create_upload_folder(folder_path):
+    """Create upload folder if it doesn't exist"""
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    return folder_path
+
+def save_resume_file(file, student_id, job_id):
+    """Save uploaded resume file and return file path"""
+    if file and allowed_file(file.filename):
+        try:
+            # Generate unique filename
+            file_extension = file.filename.rsplit('.', 1)[1].lower()
+            safe_filename = secure_filename(file.filename.rsplit('.', 1)[0])
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            unique_filename = f"resume_{student_id}_{job_id}_{timestamp}_{safe_filename}.{file_extension}"
+            
+            # Create upload directory
+            upload_folder = create_upload_folder(os.path.join(current_app.static_folder, 'uploads', 'resumes'))
+            file_path = os.path.join(upload_folder, unique_filename)
+            
+            # Save file
+            file.save(file_path)
+            
+            # Verify file was saved successfully
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                # Return relative path for database storage
+                return f"/static/uploads/resumes/{unique_filename}"
+            else:
+                current_app.logger.error(f"File saved but verification failed: {file_path}")
+                return None
+                
+        except Exception as e:
+            current_app.logger.error(f"Error saving resume file: {str(e)}")
+            return None
+    return None
 
 def check_job_prerequisites(job_id, student_id):
     """
     Check if a student meets the prerequisites for a job application
     Returns dict with eligibility status and details
     """
-    try:
-        # Get job details and requirements
+    try:        # Get job details and requirements
         job = get_record('''
-            SELECT JobID, Title, Requirements, MinimumQualifications, 
-                   PreferredSkills, ExperienceLevel, Industry
-            FROM jobs 
-            WHERE JobID = %s
+            SELECT j.JobID, j.Title, j.Requirements, j.RequiredCourses, 
+                   j.StructuredRequirements, j.ExperienceLevel, j.Location,
+                   c.Industry, c.Name as CompanyName
+            FROM jobs j
+            JOIN companies c ON j.CompanyID = c.CompanyID
+            WHERE j.JobID = %s
         ''', (job_id,))
         
         if not job:
@@ -35,23 +86,30 @@ def check_job_prerequisites(job_id, student_id):
         ''', (student_id,))
         
         if not student_profile:
-            return {'eligible': False, 'reason': 'Student profile not found'}
-        
-        # Get student's completed courses and certifications
+            return {'eligible': False, 'reason': 'Student profile not found'}        # Get student's completed courses and certifications
         completed_courses = get_records('''
-            SELECT c.Title, c.Category, c.DifficultyLevel, e.CompletionDate,
-                   c.Skills as CourseSkills
-            FROM enrollments e
-            JOIN courses c ON e.CourseID = c.CourseID
-            WHERE e.StudentID = %s AND e.Status = 'completed'
+            SELECT c.Title, c.Description, cr.RegistrationDate,
+                   c.RequiredTier as CourseLevel
+            FROM course_registrations cr
+            JOIN courses c ON cr.CourseID = c.CourseID
+            WHERE cr.StudentID = %s AND cr.Status = 'Enrolled'
         ''', (student_id,))
+        
+        # Handle case where queries return None
+        if completed_courses is None:
+            completed_courses = []
         
         # Get student's certificates
         certificates = get_records('''
-            SELECT c.Name, c.IssuedDate, c.ValidUntil, c.CertificateType
-            FROM certificates c
-            WHERE c.StudentID = %s
+            SELECT cert.CertificateNumber, cert.IssuedDate, c.Title as CourseName
+            FROM certificates cert
+            JOIN courses c ON cert.CourseID = c.CourseID
+            WHERE cert.StudentID = %s AND cert.IsValid = 1
         ''', (student_id,))
+        
+        # Handle case where queries return None
+        if certificates is None:
+            certificates = []
         
         # Initialize prerequisite check results
         checks = {
@@ -61,8 +119,7 @@ def check_job_prerequisites(job_id, student_id):
             'experience_level': {'required': False, 'met': True, 'details': ''},
             'skills_match': {'required': False, 'met': True, 'details': ''}
         }
-        
-        # Parse job requirements (if stored as JSON)
+          # Parse job requirements (if stored as JSON)
         requirements = {}
         if job.get('Requirements'):
             try:
@@ -73,6 +130,14 @@ def check_job_prerequisites(job_id, student_id):
                     requirements = {'description': job['Requirements']}
             except:
                 requirements = {'description': job['Requirements']}
+        
+        # Parse required courses from JSON column
+        if job.get('RequiredCourses'):
+            try:
+                required_courses_json = json.loads(job['RequiredCourses']) if isinstance(job['RequiredCourses'], str) else job['RequiredCourses']
+                requirements['required_courses'] = required_courses_json if isinstance(required_courses_json, list) else []
+            except:
+                pass
         
         # Check subscription level requirements
         premium_industries = ['finance', 'healthcare', 'government', 'defense']
@@ -96,12 +161,11 @@ def check_job_prerequisites(job_id, student_id):
             if missing_courses:
                 checks['course_completion']['met'] = False
                 checks['course_completion']['details'] = f'Missing required courses: {", ".join(missing_courses)}'
-        
-        # Check certification requirements
+          # Check certification requirements
         required_certs = requirements.get('required_certifications', [])
         if required_certs:
             checks['certifications']['required'] = True
-            student_cert_names = [cert['Name'].lower() for cert in certificates]
+            student_cert_names = [cert['CourseName'].lower() for cert in certificates]
             missing_certs = []
             
             for req_cert in required_certs:
@@ -111,8 +175,7 @@ def check_job_prerequisites(job_id, student_id):
             if missing_certs:
                 checks['certifications']['met'] = False
                 checks['certifications']['details'] = f'Missing required certifications: {", ".join(missing_certs)}'
-        
-        # Check experience level (based on completed courses and difficulty)
+          # Check experience level (based on completed courses and tier)
         experience_mapping = {
             'beginner': 0,
             'intermediate': 3,
@@ -123,11 +186,11 @@ def check_job_prerequisites(job_id, student_id):
         required_experience = job.get('ExperienceLevel', '').lower()
         if required_experience and required_experience in experience_mapping:
             checks['experience_level']['required'] = True
-            student_advanced_courses = len([c for c in completed_courses 
-                                           if c.get('DifficultyLevel', '').lower() in ['advanced', 'expert']])
+            # Count courses as experience indicator
+            student_course_count = len(completed_courses)
             
             required_level = experience_mapping[required_experience]
-            if student_advanced_courses < required_level:
+            if student_course_count < required_level:
                 checks['experience_level']['met'] = False
                 checks['experience_level']['details'] = f'Requires {required_experience} level. Complete more {required_experience}+ courses.'
         
@@ -182,17 +245,17 @@ def jobs():
             
             student_id = student['StudentID']
             
-            # Optimized query: fetch jobs and application status in one go
+            # Optimized query: fetch jobs and application status in one go            
             jobs = get_records('''
                 SELECT j.*, c.Name AS CompanyName, 
-                       COALESCE(ast.Name, 'Not Applied') AS ApplicationStatus,
-                       ja.ApplicationDate
+                                              COALESCE(ast.Name, 'Not Applied') AS ApplicationStatus,
+                       ja.ApplicationDate, j.IsUrgent, j.IsFeatured
                 FROM jobs j
                 JOIN companies c ON j.CompanyID = c.CompanyID
                 LEFT JOIN job_applications ja ON j.JobID = ja.JobID AND ja.StudentID = %s
                 LEFT JOIN application_statuses ast ON ja.StatusID = ast.StatusID
-                WHERE j.DeadlineDate >= CURDATE()
-                ORDER BY j.PostingDate DESC
+                WHERE j.IsActive = 1 AND (j.DeadlineDate IS NULL OR j.DeadlineDate >= CURDATE())
+                ORDER BY j.IsFeatured DESC, j.IsUrgent DESC, j.PostingDate DESC
             ''', (student_id,))
 
         elif user_type == 'company':
@@ -206,11 +269,11 @@ def jobs():
                 ORDER BY j.PostingDate DESC
             ''', (user_id,))
         
-        return render_template('jobs.html', jobs=jobs, user_type=user_type)
+        return render_template('jobs/jobs.html', jobs=jobs, user_type=user_type)
 
     except Exception as e:
         flash(f'Error loading jobs: {str(e)}', 'danger')
-        return render_template('jobs.html', jobs=[], user_type=user_type)
+        return render_template('jobs/jobs.html', jobs=[], user_type=user_type)
 
 @jobs_bp.route('/job/<int:job_id>')
 @login_required
@@ -249,7 +312,7 @@ def job_detail(job_id):
                 if not application:
                     prerequisite_check = check_job_prerequisites(job_id, student['StudentID'])
         
-        return render_template('job_detail.html', job=job, application=application, 
+        return render_template('jobs/job_detail.html', job=job, application=application, 
                              prerequisite_check=prerequisite_check)
     
     except Exception as e:
@@ -281,63 +344,102 @@ def apply_job(job_id):
         return redirect(url_for('auth.login'))
     
     try:
+        # Get student info
         student = get_record('SELECT StudentID FROM students WHERE UserID = %s', 
                            (session['user_id'],))
         if not student:
             flash('Student profile not found', 'danger')
             return redirect(url_for('jobs.jobs'))
         
+        student_id = student['StudentID']
+        
         # Check if already applied
         existing = get_record('''
             SELECT * FROM job_applications 
             WHERE JobID = %s AND StudentID = %s
-        ''', (job_id, student['StudentID']))
+        ''', (job_id, student_id))
         
         if existing:
             flash('You have already applied for this job', 'warning')
             return redirect(url_for('jobs.job_detail', job_id=job_id))
         
-        # Check prerequisites before allowing application
-        prerequisite_check = check_job_prerequisites(job_id, student['StudentID'])
+        # Get form data
+        cover_letter = request.form.get('cover_letter', '').strip()
         
-        # Allow application regardless of prerequisites but warn if not fully qualified
-        if not prerequisite_check['eligible']:
-            # Store warning but still allow application
-            warning_msg = "Note: You may not meet all requirements for this position. "
+        if not cover_letter:
+            flash('Please provide a cover letter', 'danger')
+            return redirect(url_for('jobs.job_detail', job_id=job_id))
+          # Handle file upload
+        resume_path = None
+        if 'resume_file' in request.files:
+            file = request.files['resume_file']
+            
+            if file.filename == '':
+                flash('Please select a resume file', 'danger')
+                return redirect(url_for('jobs.job_detail', job_id=job_id))
+            
+            if not allowed_file(file.filename):
+                flash('Invalid file type. Please upload PDF, DOC, or DOCX files only.', 'danger')
+                return redirect(url_for('jobs.job_detail', job_id=job_id))
+            
+            # Check file size efficiently
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)  # Reset file position
+            
+            if file_size > MAX_FILE_SIZE:
+                flash('File too large. Please upload a file smaller than 10MB.', 'danger')
+                return redirect(url_for('jobs.job_detail', job_id=job_id))
+            
+            # Save the file
+            try:
+                resume_path = save_resume_file(file, student_id, job_id)
+                if not resume_path:
+                    flash('Error uploading resume. Please try again.', 'danger')
+                    return redirect(url_for('jobs.job_detail', job_id=job_id))
+            except Exception as e:
+                current_app.logger.error(f"Error saving resume file: {str(e)}")
+                flash('Error uploading resume. Please try again.', 'danger')
+                return redirect(url_for('jobs.job_detail', job_id=job_id))
+        else:
+            flash('Please upload your resume', 'danger')
+            return redirect(url_for('jobs.job_detail', job_id=job_id))
+        
+        # Check prerequisites (but allow application regardless)
+        prerequisite_check = check_job_prerequisites(job_id, student_id)
+        
+        # Warn if not fully qualified but still allow application
+        if not prerequisite_check.get('eligible', False):
+            warning_msg = "Note: You may not meet all requirements for this position."
             if prerequisite_check.get('recommendations'):
-                warning_msg += "Consider: " + "; ".join(prerequisite_check['recommendations'][:2])
+                warning_msg += " Consider: " + "; ".join(prerequisite_check['recommendations'][:2])
             flash(warning_msg, 'warning')
         
-        # Get the cover letter/resume content
-        content = request.form.get('resume', '').strip()
-        if not content:
-            flash('Please provide a cover letter/resume', 'danger')
-            return redirect(url_for('jobs.job_detail', job_id=job_id))
-            
-        # Submit application with prerequisite check results
+        # Submit application
         execute_query('''
             INSERT INTO job_applications 
-            (JobID, StudentID, ApplicationDate, StatusID, CoverLetter, PrerequisiteScore, Notes)
-            VALUES (%s, %s, CURDATE(), 1, %s, %s, %s)
+            (JobID, StudentID, ApplicationDate, StatusID, ResumePath, CoverLetter, PrerequisiteScore, Notes)
+            VALUES (%s, %s, NOW(), 1, %s, %s, %s, %s)
         ''', (
             job_id, 
-            student['StudentID'], 
-            content,
+            student_id, 
+            resume_path,
+            cover_letter,
             prerequisite_check.get('score', 0),
             json.dumps(prerequisite_check) if prerequisite_check else None
         ))
         
-        success_msg = 'Application submitted successfully'
-        if prerequisite_check['eligible']:
-            success_msg += ' - You meet all the requirements!'
-        
+        success_msg = 'Application submitted successfully!'
+        if prerequisite_check.get('eligible', False):
+            success_msg += ' You meet all the requirements!'        
         flash(success_msg, 'success')
         
         return redirect(url_for('jobs.job_detail', job_id=job_id))
     
     except Exception as e:
+        current_app.logger.error(f"Error in apply_job: {str(e)}")
         flash(f'Error submitting application: {str(e)}', 'danger')
-        return redirect(url_for('jobs.jobs'))
+        return redirect(url_for('jobs.job_detail', job_id=job_id))
 
 @jobs_bp.route('/manage-jobs')
 @login_required
@@ -363,11 +465,11 @@ def manage_jobs():
             ORDER BY j.PostingDate DESC
         ''', (company_id,))
         
-        return render_template('manage_jobs.html', jobs=jobs)
+        return render_template('jobs/manage_jobs.html', jobs=jobs)
     
     except Exception as e:
         flash(f"Error managing jobs: {str(e)}", "danger")
-        return render_template('manage_jobs.html', jobs=[])
+        return render_template('jobs/manage_jobs.html', jobs=[])
 
 @jobs_bp.route('/edit-job/<int:job_id>', methods=['GET', 'POST'])
 @login_required
@@ -413,7 +515,7 @@ def edit_job(job_id):
         flash('Job updated successfully', 'success')
         return redirect(url_for('jobs.manage_jobs'))
 
-    return render_template('edit_job.html', job=job)
+    return render_template('jobs/edit_job.html', job=job)
 
 @jobs_bp.route('/create-job', methods=['GET', 'POST'])
 @login_required
@@ -461,7 +563,7 @@ def create_job():
         
         # GET request: show the job creation form
         print("DEBUG: About to render create_job.html template", file=sys.stderr)
-        return render_template('create_job.html')
+        return render_template('jobs/create_job.html')
     except Exception as e:
         print(f"ERROR in create_job: {str(e)}", file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
@@ -509,7 +611,7 @@ def review_applications(job_id):
         # Get available status options
         statuses = get_records('SELECT * FROM application_statuses ORDER BY StatusID')
         
-        return render_template('review_applications.html', 
+        return render_template('jobs/review_applications.html', 
                               applications=applications, 
                               job=job,
                               statuses=statuses)

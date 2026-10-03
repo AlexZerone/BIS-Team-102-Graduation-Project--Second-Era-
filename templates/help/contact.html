@@ -154,6 +154,69 @@
                             </button>
                         </div>
                     </form>
+
+                </div>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            </div>
+            
+            <!-- FAQ Section -->
+            <div class="row mt-5">
+                <div class="col-lg-10 mx-auto">
+                    <div class="text-center mb-4">
+                        <h2 class="text-primary mb-3">Frequently Asked Questions</h2>
+                        <p class="text-muted">Quick answers to common questions</p>
+                    </div>
+                    
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq1">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse1" aria-expanded="true" aria-controls="collapse1">
+                                    How quickly will I receive a response?
+                                </button>
+                            </h2>
+                            <div id="collapse1" class="accordion-collapse collapse show" 
+                                aria-labelledby="faq1" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    We typically respond to all inquiries within 24 hours during business days. 
+                                    For urgent technical issues, our premium subscribers have access to priority support.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse2" aria-expanded="false" aria-controls="collapse2">
+                                    Do you offer phone support?
+                                </button>
+                            </h2>
+                            <div id="collapse2" class="accordion-collapse collapse" 
+                                aria-labelledby="faq2" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Phone support is available for Premium subscribers during business hours. 
+                                    All other users can reach us via email or live chat for assistance.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse3" aria-expanded="false" aria-controls="collapse3">
+                                    Can I schedule a demo or consultation?
+                                </button>
+                            </h2>
+                            <div id="collapse3" class="accordion-collapse collapse" 
+                                aria-labelledby="faq3" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Absolutely! We offer personalized demos for companies and educational institutions. 
+                                    Use the contact form above with "Partnership Opportunity" as the subject to schedule one.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -223,6 +286,54 @@
                 </div>
             </div>
             
+            <!-- Social Media -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-share-alt me-2"></i>Follow Us
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="#" class="btn btn-outline-primary btn-sm">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="btn btn-outline-info btn-sm">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="btn btn-outline-dark btn-sm">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="btn btn-outline-danger btn-sm">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                    <p class="text-muted mt-3 mb-0 small">
+                        Stay updated with our latest news and announcements
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-question-circle me-2"></i>Need Help?
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">                            <a href="{{ url_for('help.help_index') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-life-ring me-2"></i>Help Center
+                        </a>
+                        <a href="#" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-comments me-2"></i>Live Chat
+                        </a>
+                        <a href="{{ url_for('pages.terms') }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-file-contract me-2"></i>Terms of Service
+                        </a>
+                    </div>
+                </div>
+            </div>
             <!-- Emergency Contact -->
             <div class="card border-0 shadow-sm border-danger">
                 <div class="card-header bg-danger text-white">
@@ -242,6 +353,7 @@
                 </div>
             </div>
         </div>
+        
     </div>
 </div>
 {% endblock %}

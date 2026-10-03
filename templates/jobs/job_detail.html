@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}
+Job Details - {{ job.Title }}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .job-header {
+        background-color: #f8f9fa;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+
+    .company-info {
+        border-left: 3px solid #007bff;
+        padding-left: 1rem;
+    }
+
+    .requirements-list {
+        list-style-type: none;
+        padding-left: 0;
+    }
+
+    .requirements-list li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .requirements-list li:last-child {
+        border-bottom: none;
+    }
+
+    .application-status {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="job-header">
+        <div class="row">
+            <div class="col-md-8">
+                <h2>{{ job.Title }}</h2>
+                <div class="company-info mt-3">
+                    <h5>{{ job.CompanyName }}</h5>                    <p class="mb-1"><i class="fas fa-map-marker-alt"></i> {{ job.Location }}</p>
+                    <p class="mb-1"><i class="fas fa-industry"></i> {{ job.Industry }}</p>
+                    {% if job.MinSalary and job.MaxSalary %}
+                        <p class="mb-0"><i class="fas fa-money-bill-wave"></i> ${{ "{:,.0f}".format(job.MinSalary) }} - ${{ "{:,.0f}".format(job.MaxSalary) }}</p>
+                    {% elif job.MinSalary %}
+                        <p class="mb-0"><i class="fas fa-money-bill-wave"></i> From ${{ "{:,.0f}".format(job.MinSalary) }}</p>
+                    {% elif job.MaxSalary %}
+                        <p class="mb-0"><i class="fas fa-money-bill-wave"></i> Up to ${{ "{:,.0f}".format(job.MaxSalary) }}</p>
+                    {% else %}
+                        <p class="mb-0"><i class="fas fa-money-bill-wave"></i> Salary to be discussed</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                {% if session.user_type == 'student' %}
+                    {% if not application %}
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#applyModal"
+                        >
+                            Apply Now
+                        </button>
+                    {% else %}
+                        <div class="alert alert-info application-status">
+                            {% if application.StatusID %}
+                                {% set status_name = {
+                                    1: 'Pending',
+                                    2: 'Under Review',
+                                    3: 'Accepted',
+                                    4: 'Rejected'
+                                }.get(application.StatusID, 'Unknown') %}
+                                Application Status: {{ status_name }}
+                            {% else %}
+                                Application Status: Pending
+                            {% endif %}
+                            <br>
+                            Applied on: {{ application.ApplicationDate.strftime('%Y-%m-%d') }}
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Job Description</h5>
+                    <p class="card-text">{{ job.Description }}</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Requirements</h5>
+                    <ul class="requirements-list">
+                        {% for requirement in job.Requirements.split('\n') %}
+                            <li>
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                {{ requirement }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Job Details</h5>
+                    <p><strong>Type:</strong> {{ job.Type }}</p>
+                    <p><strong>Posted:</strong> {{ job.PostingDate.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>Deadline:</strong> {{ job.DeadlineDate.strftime('%Y-%m-%d') }}</p>
+
+                    {% if session.user_type == 'company' and job.ApplicationCount is defined %}
+                        <hr>
+                        <h6>Applications Received: {{ job.ApplicationCount }}</h6>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if session.user_type == 'student' and not application %}    <!-- Apply Modal -->
+    <div class="modal fade" id="applyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ url_for('jobs.apply_job', job_id=job.JobID) }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Apply for {{ job.Title }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="resume-file" class="form-label">Resume / CV (PDF, DOC, DOCX)</label>
+                            <input class="form-control" type="file" id="resume-file" name="resume_file" accept=".pdf,.doc,.docx" required>
+                            <div class="form-text">Please upload your resume or CV (max 10MB)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="cover-letter" class="form-label">Cover Letter</label>
+                            <textarea class="form-control" id="cover-letter" name="cover_letter" rows="4" 
+                                      placeholder="Tell us why you're interested in this position and how your skills match the requirements..." required></textarea>
+                            <div class="form-text">Explain why you're a good fit for this role</div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Submit Application</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const resumeInput = document.getElementById('resume-file');
+    const submitBtn = document.querySelector('#applyModal button[type="submit"]');
+    const coverLetterInput = document.getElementById('cover-letter');
+    
+    if (resumeInput) {
+        resumeInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            
+            if (file) {
+                // Check file size
+                if (file.size > maxSize) {
+                    alert('File too large! Please upload a file smaller than 10MB.');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Check file type
+                if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|doc|docx)$/i)) {
+                    alert('Invalid file type! Please upload PDF, DOC, or DOCX files only.');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Show file info
+                const fileInfo = document.createElement('small');
+                fileInfo.className = 'text-success mt-1 d-block file-info';
+                fileInfo.textContent = `✓ Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                
+                // Remove existing file info
+                const existingInfo = e.target.parentNode.querySelector('.file-info');
+                if (existingInfo) {
+                    existingInfo.remove();
+                }
+                
+                e.target.parentNode.appendChild(fileInfo);
+            }
+        });
+    }
+    
+    // Character counter for cover letter
+    if (coverLetterInput) {
+        const charCounter = document.createElement('small');
+        charCounter.className = 'text-muted mt-1 d-block';
+        coverLetterInput.parentNode.appendChild(charCounter);
+        
+        function updateCharCounter() {
+            const length = coverLetterInput.value.length;
+            charCounter.textContent = `${length} characters`;
+            
+            if (length < 50) {
+                charCounter.className = 'text-warning mt-1 d-block';
+                charCounter.textContent += ' (minimum 50 characters recommended)';
+            } else {
+                charCounter.className = 'text-muted mt-1 d-block';
+            }
+        }
+        
+        coverLetterInput.addEventListener('input', updateCharCounter);
+        updateCharCounter();
+    }
+    
+    // Form validation before submit
+    const applyForm = document.querySelector('#applyModal form');
+    if (applyForm) {
+        applyForm.addEventListener('submit', function(e) {
+            const file = resumeInput.files[0];
+            const coverLetter = coverLetterInput.value.trim();
+            
+            if (!file) {
+                e.preventDefault();
+                alert('Please select a resume file.');
+                return false;
+            }
+            
+            if (coverLetter.length < 10) {
+                e.preventDefault();
+                alert('Please provide a meaningful cover letter (at least 10 characters).');
+                coverLetterInput.focus();
+                return false;
+            }
+            
+            // Show loading state
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

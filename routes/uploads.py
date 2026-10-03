@@ -254,3 +254,40 @@ def list_files(folder):
     except Exception as e:
         current_app.logger.error(f"Error listing files: {str(e)}")
         return jsonify({'success': False, 'error': 'Failed to list files'}), 500
+
+@uploads_bp.route('/certificate', methods=['POST'])
+def upload_certificate():
+    """Upload certificate file for a student (admin or instructor only)"""
+    if 'user_id' not in session or session.get('user_type') not in ['admin', 'instructor']:
+        return jsonify({'success': False, 'error': 'Admin or instructor access required'}), 403
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'}), 400
+    file = request.files['file']
+    student_id = request.form.get('student_id')
+    course_id = request.form.get('course_id')
+    if file.filename == '' or not student_id or not course_id:
+        return jsonify({'success': False, 'error': 'File, student_id, and course_id required'}), 400
+    file_type = get_file_type(file.filename)
+    if file_type != 'document':
+        return jsonify({'success': False, 'error': 'Only document files allowed for certificates'}), 400
+    try:
+        file_data = file.read()
+        if len(file_data) > MAX_FILE_SIZES['document']:
+            return jsonify({'success': False, 'error': 'File too large'}), 400
+        file_extension = file.filename.rsplit('.', 1)[1].lower()
+        safe_filename = secure_filename(file.filename.rsplit('.', 1)[0])
+        unique_filename = f"cert_{student_id}_{course_id}_{uuid.uuid4().hex[:8]}.{file_extension}"
+        upload_folder = create_upload_folder(os.path.join(current_app.static_folder, 'uploads', 'certificates'))
+        file_path = os.path.join(upload_folder, unique_filename)
+        with open(file_path, 'wb') as f:
+            f.write(file_data)
+        file_url = f"/static/uploads/certificates/{unique_filename}"
+        # Update certificates table with file path
+        from models import execute_query
+        execute_query('''
+            UPDATE certificates SET FilePath = %s WHERE StudentID = %s AND CourseID = %s
+        ''', (file_url, student_id, course_id))
+        return jsonify({'success': True, 'message': 'Certificate uploaded', 'file_url': file_url})
+    except Exception as e:
+        current_app.logger.error(f"Error uploading certificate: {str(e)}")
+        return jsonify({'success': False, 'error': 'Upload failed'}), 500

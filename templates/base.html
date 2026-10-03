@@ -20,25 +20,156 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon-16x16.png') }}">
-    
-    <!-- Preload Critical Resources -->
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon-16x16.png') }}">      <!-- Preload Critical Resources -->
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" as="style">
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" as="script">
     
-    <!-- CSS -->
+    <!-- Flask-Moment for date/time formatting -->
+    {{ moment.include_moment() }}    <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">    
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
-    
-    
+    <link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/layout.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/responsive.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/enhanced-components.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dark-mode.css') }}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
+      <!-- Custom CSS Variables -->
+    <style>
+        :root {
+            --primary-color: #223947;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --info-color: #0dcaf0;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --border-radius: 0.375rem;
+            --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            --transition: all 0.15s ease-in-out;
+        }
+        
+        .main-navbar {
+            transition: var(--transition);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .navbar-nav .nav-link {
+            transition: var(--transition);
+            border-radius: var(--border-radius);
+            margin: 0 0.25rem;
+        }
+        
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(34, 57, 71, 0.1);
+        }
+        
+        .navbar-nav .nav-link.active {
+            background-color: rgba(34, 57, 71, 0.15);
+            color: var(--primary-color) !important;
+            font-weight: 600;
+        }
+        
+        .theme-switcher-btn {
+            border: 1px solid rgba(34, 57, 71, 0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        
+        .theme-switcher-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .card {
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn {
+            transition: var(--transition);
+        }
+        
+        .avatar-circle {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.875rem;
+        }
+        
+        .stat-card {
+            transition: var(--transition);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            border-radius: var(--border-radius);
+        }
+        
+        .dropdown-item {
+            transition: var(--transition);
+            border-radius: calc(var(--border-radius) - 2px);
+            margin: 0.125rem 0.5rem;
+        }
+        
+        .dropdown-item:hover {
+            background-color: rgba(34, 57, 71, 0.1);
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        @media (max-width: 991.98px) {
+            .navbar-nav .nav-link {
+                margin: 0.125rem 0;
+            }
+            
+            .theme-switcher-btn {
+                margin: 0.5rem 0;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Accessibility Skip Link -->
     <a href="#main-content" class="visually-hidden-focusable d-block p-2 bg-primary text-white text-center">
         Skip to main content
     </a>
+    
+    <!-- Import template components -->
+    {% from 'components/alerts.html' import render_flash_messages %}
+    {% from 'components/cards.html' import stat_card, course_card, assignment_card, job_card %}
+    {% from 'components/forms.html' import form_field, search_form, filter_dropdown %}
+    {% from 'components/navigation.html' import breadcrumb, pagination, tabs %}
+    {% from 'components/tables.html' import data_table, status_badge %}
 
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg sticky-top bg-white shadow-sm py-2 main-navbar" role="navigation" aria-label="Main navigation">
@@ -49,9 +180,10 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                {% if session.get('user_id') %}                    {% if session.get('user_type') == 'student' %}
+            </button>            <div class="collapse navbar-collapse" id="navbarNav">
+                {% if session.get('user_id') %}
+                    <!-- Authenticated User Navigation -->
+                    {% if session.get('user_type') == 'student' %}
                         {% include 'includes/nav_student.html' %}
                     {% elif session.get('user_type') == 'instructor' %}
                         {% include 'includes/nav_instructor.html' %}
@@ -60,7 +192,14 @@
                     {% elif session.get('user_type') == 'admin' %}
                         {% include 'includes/nav_admin.html' %}
                     {% else %}
+                        <!-- Fallback navigation for authenticated users without specific type -->
                         <ul class="navbar-nav me-auto">
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint == 'dashboard.dashboard' %}active{% endif %}" 
+                                   href="{{ url_for('dashboard.dashboard') }}">
+                                   <i class="fas fa-tachometer-alt"></i> Dashboard
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'home.home' %}active{% endif %}" 
                                    href="{{ url_for('home.home') }}">
@@ -70,13 +209,15 @@
                         </ul>
                     {% endif %}
                 {% else %}
+                    <!-- Public/Guest Navigation -->
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'home.home' %}active{% endif %}" 
                                href="{{ url_for('home.home') }}">
                                <i class="fas fa-home"></i> Home
                             </a>
-                        </li>                        <li class="nav-item">
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'pages.about' %}active{% endif %}" 
                                href="{{ url_for('pages.about') }}">
                                <i class="fas fa-info-circle"></i> About
@@ -87,7 +228,8 @@
                                href="{{ url_for('subscriptions.plans') }}">
                                <i class="fas fa-crown"></i> Plans
                             </a>
-                        </li>                        <li class="nav-item dropdown">
+                        </li>
+                        <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {% if request.blueprint == 'help' %}active{% endif %}" 
                                href="#" id="helpDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                <i class="fas fa-question-circle"></i> Help
@@ -112,46 +254,50 @@
                             </ul>
                         </li>
                     </ul>
-                {% endif %}
-    
-                <!-- Right-aligned items -->
+                {% endif %}                <!-- Right-aligned items -->
                 <ul class="navbar-nav ms-auto align-items-center">
                     <!-- Theme Switcher -->
-                    <li class="nav-item px-2">
-                        <button class="btn btn-sm nav-link theme-switcher-btn" id="themeSwitcher" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <li class="nav-item">
+                        <button class="btn btn-sm btn-outline-secondary theme-switcher-btn" id="themeSwitcher" 
+                                title="Toggle dark mode" aria-label="Toggle dark mode">
                             <i class="fas fa-moon"></i>
                         </button>
                     </li>
                     
                     {% if session.get('user_id') %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button"
-                               data-bs-toggle="dropdown" aria-expanded="false">
+                        <!-- User Account Dropdown -->
+                        <li class="nav-item dropdown ms-2">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" 
+                               role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <span class="avatar-circle me-2">{{ session.get('user_name', 'User')[0]|upper }}</span>
                                 <span class="d-none d-md-inline">{{ session.get('user_name', 'Account') }}</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
                                 <li class="dropdown-item-text">
-                                    <div class="small text-muted mb-2">Signed in as</div>
+                                    <div class="small text-muted mb-1">Signed in as</div>
                                     <div class="fw-bold">{{ session.get('user_name', 'User') }}</div>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
+                                    <div class="small text-muted">{{ session.get('user_type', 'User')|title }}</div>
+                                </li>                                <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('dashboard.dashboard') }}">
                                         <i class="fas fa-tachometer-alt fa-fw me-2"></i> Dashboard
                                     </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{{ url_for('profile.profile') if 'profile.profile' in url_for.__self__._rules_by_endpoint else '#' }}">
+                                </li>                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('profile.profile') }}">
                                         <i class="fas fa-user fa-fw me-2"></i> My Profile
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ url_for('profile.settings') if 'profile.settings' in url_for.__self__._rules_by_endpoint else '#' }}">
+                                    <a class="dropdown-item" href="{{ url_for('profile.settings') }}">
                                         <i class="fas fa-cog fa-fw me-2"></i> Settings
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('help.help_index') }}">
+                                        <i class="fas fa-question-circle fa-fw me-2"></i> Help & Support
+                                    </a>
+                                </li>
                                 <li>
                                     <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
                                         <i class="fas fa-sign-out-alt fa-fw me-2"></i> Logout
@@ -160,14 +306,15 @@
                             </ul>
                         </li>
                     {% else %}
-                        <li class="nav-item">
+                        <!-- Guest User Actions -->
+                        <li class="nav-item ms-2">
                             <a class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}" 
                                href="{{ url_for('auth.login') }}">
                                <i class="fas fa-sign-in-alt me-1"></i> Login
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-primary btn-sm text-white px-3 ms-2 {% if request.endpoint == 'auth.register' %}active{% endif %}" 
+                        <li class="nav-item ms-1">
+                            <a class="btn btn-primary btn-sm px-3 {% if request.endpoint == 'auth.register' %}active{% endif %}" 
                                href="{{ url_for('auth.register') }}">
                                <i class="fas fa-user-plus me-1"></i> Register
                             </a>
@@ -183,10 +330,13 @@
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-    </div>
-
-    <!-- Main Content -->
+    </div>    <!-- Main Content -->
     <main id="main-content" class="main-content">
+        <!-- Flash Messages -->
+        <div class="container mt-3">
+            {{ render_flash_messages() }}
+        </div>
+        
         {% block content %}{% endblock %}
     </main>
 
@@ -211,23 +361,23 @@
                         <a href="#" class="btn btn-sm btn-outline-secondary me-2" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
                         <a href="#" class="btn btn-sm btn-outline-secondary" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                     </div>
-                </div>
-                <div class="col-6 col-md-2 mb-3">
-                    <h6 class="fw-bold mb-3">Quick Links</h6>                    <ul class="nav flex-column">
+                </div>                <div class="col-6 col-md-2 mb-3">                    <h6 class="fw-bold mb-3">Quick Links</h6>
+                    <ul class="nav flex-column">
                         <li class="nav-item mb-2"><a href="{{ url_for('home.home') }}" class="nav-link p-0 text-muted">Home</a></li>
                         <li class="nav-item mb-2"><a href="{{ url_for('help.about') }}" class="nav-link p-0 text-muted">About Us</a></li>
-                        <li class="nav-item mb-2"><a href="{{ url_for('courses.catalog') if 'courses.catalog' in url_for.__self__._rules_by_endpoint else '#' }}" class="nav-link p-0 text-muted">Courses</a></li>
+                        <li class="nav-item mb-2"><a href="{{ url_for('courses.courses') }}" class="nav-link p-0 text-muted">Courses</a></li>
                         <li class="nav-item mb-2"><a href="{{ url_for('help.contact') }}" class="nav-link p-0 text-muted">Contact</a></li>
                     </ul>
                 </div>
                 <div class="col-6 col-md-2 mb-3">
                     <h6 class="fw-bold mb-3">Resources</h6>                    <ul class="nav flex-column">
-                        <li class="nav-item mb-2"><a href="{{ url_for('help.faq') }}" class="nav-link p-0 text-muted">Help Center</a></li>
+                        <li class="nav-item mb-2"><a href="{{ url_for('help.help_index') }}" class="nav-link p-0 text-muted">Help Center</a></li>
                         <li class="nav-item mb-2"><a href="{{ url_for('subscriptions.plans') }}" class="nav-link p-0 text-muted">Pricing Plans</a></li>
                         <li class="nav-item mb-2"><a href="{{ url_for('help.contact') }}" class="nav-link p-0 text-muted">Support</a></li>
                         <li class="nav-item mb-2"><a href="{{ url_for('help.faq') }}" class="nav-link p-0 text-muted">FAQ</a></li>
                     </ul>
                 </div>
+                <!--
                 <div class="col-md-4">
                     <h6 class="fw-bold mb-3">Newsletter</h6>
                     <p class="text-muted small">Subscribe to get updates on courses and events</p>
@@ -236,6 +386,7 @@
                         <button class="btn btn-primary btn-sm" type="submit">Subscribe</button>
                     </form>
                 </div>
+                -->
             </div>
             
             <div class="d-flex flex-column flex-md-row justify-content-between pt-4 mt-4 border-top">
@@ -246,12 +397,149 @@
                 </ul>
             </div>
         </div>
-    </footer>
-
-    <!-- Scripts -->
+    </footer>    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="{{ url_for('static', filename='js/theme-manager.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js" defer></script>
+
+    <!-- Navigation Enhancement Script -->
+    <script>        document.addEventListener('DOMContentLoaded', function() {
+            // Enhanced Theme Switcher Functionality
+            const themeSwitcher = document.getElementById('themeSwitcher');
+            const htmlElement = document.documentElement;
+            
+            // Load saved theme or detect system preference
+            const savedTheme = localStorage.getItem('theme');
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            const initialTheme = savedTheme || systemTheme;
+            
+            // Apply initial theme
+            setTheme(initialTheme);
+            
+            // Theme switcher click handler
+            if (themeSwitcher) {
+                themeSwitcher.addEventListener('click', function() {
+                    const currentTheme = htmlElement.getAttribute('data-bs-theme');
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    setTheme(newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    
+                    // Add a subtle animation to indicate theme change
+                    document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+                    setTimeout(() => {
+                        document.body.style.transition = '';
+                    }, 300);
+                });
+            }
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+                if (!localStorage.getItem('theme')) {
+                    setTheme(e.matches ? 'dark' : 'light');
+                }
+            });
+            
+            function setTheme(theme) {
+                htmlElement.setAttribute('data-bs-theme', theme);
+                updateThemeIcon(theme);
+                updateMetaThemeColor(theme);
+                
+                // Dispatch custom event for other components
+                window.dispatchEvent(new CustomEvent('themeChanged', { 
+                    detail: { theme: theme } 
+                }));
+            }
+            
+            function updateThemeIcon(theme) {
+                const icon = themeSwitcher?.querySelector('i');
+                if (icon) {
+                    if (theme === 'dark') {
+                        icon.className = 'fas fa-sun';
+                        themeSwitcher.title = 'Switch to light mode';
+                        themeSwitcher.setAttribute('aria-label', 'Switch to light mode');
+                    } else {
+                        icon.className = 'fas fa-moon';
+                        themeSwitcher.title = 'Switch to dark mode';
+                        themeSwitcher.setAttribute('aria-label', 'Switch to dark mode');
+                    }
+                }
+            }
+            
+            function updateMetaThemeColor(theme) {
+                // Update meta theme-color for mobile browsers
+                let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+                if (!metaThemeColor) {
+                    metaThemeColor = document.createElement('meta');
+                    metaThemeColor.name = 'theme-color';
+                    document.head.appendChild(metaThemeColor);
+                }
+                metaThemeColor.content = theme === 'dark' ? '#1a202c' : '#223947';
+                
+                // Update PWA manifest theme colors if needed
+                const manifestLink = document.querySelector('link[rel="manifest"]');
+                if (manifestLink) {
+                    // This would require dynamic manifest generation in production
+                    console.log(`Theme changed to ${theme} - consider updating PWA manifest`);
+                }
+            }
+            
+            // Scroll to Top Button
+            const scrollToTopBtn = document.getElementById('scrollToTop');
+            if (scrollToTopBtn) {
+                window.addEventListener('scroll', function() {
+                    if (window.pageYOffset > 300) {
+                        scrollToTopBtn.classList.remove('d-none');
+                    } else {
+                        scrollToTopBtn.classList.add('d-none');
+                    }
+                });
+                
+                scrollToTopBtn.addEventListener('click', function() {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
+            
+            // Loading Spinner for form submissions
+            const forms = document.querySelectorAll('form');
+            const spinner = document.getElementById('loading-spinner');
+            
+            forms.forEach(form => {
+                form.addEventListener('submit', function() {
+                    if (spinner) {
+                        spinner.classList.remove('d-none');
+                    }
+                });
+            });
+            
+            // Auto-hide flash messages after 5 seconds
+            const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            });
+            
+            // Navbar collapse on link click (mobile)
+            const navLinks = document.querySelectorAll('.navbar-nav .nav-link:not(.dropdown-toggle)');
+            const navbarCollapse = document.querySelector('.navbar-collapse');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 992 && navbarCollapse.classList.contains('show')) {
+                        const bsCollapse = new bootstrap.Collapse(navbarCollapse);
+                        bsCollapse.hide();
+                    }
+                });
+            });
+        });
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>

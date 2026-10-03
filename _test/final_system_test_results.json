@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-06-11T22:48:04.341821",
+  "timestamp": "2025-06-12T17:22:28.936657",
   "tests": {
     "/": {
       "status": "PASS",
@@ -14,20 +14,20 @@
       "code": 200
     },
     "/help": {
-      "status": "FAIL",
-      "code": 500
+      "status": "PASS",
+      "code": 200
     },
     "/help/getting-started": {
-      "status": "FAIL",
-      "code": 404
+      "status": "PASS",
+      "code": 200
     },
     "/pages/about": {
-      "status": "FAIL",
-      "code": 404
+      "status": "PASS",
+      "code": 200
     },
     "/pages/contact": {
-      "status": "FAIL",
-      "code": 404
+      "status": "PASS",
+      "code": 200
     },
     "/dashboard": {
       "status": "PASS",
@@ -50,8 +50,9 @@
       "note": "Auth Required"
     },
     "/profile": {
-      "status": "FAIL",
-      "code": 404
+      "status": "PASS",
+      "code": 302,
+      "note": "Auth Required"
     },
     "/enrollment": {
       "status": "PASS",
@@ -80,16 +81,16 @@
   },
   "summary": {
     "total_tests": 17,
-    "passed": 11,
-    "failed": 6,
-    "success_rate": 64.70588235294117,
+    "passed": 16,
+    "failed": 1,
+    "success_rate": 94.11764705882352,
     "public_pages": {
       "total": 7,
-      "passed": 3
+      "passed": 7
     },
     "auth_pages": {
       "total": 6,
-      "passed": 5
+      "passed": 6
     },
     "admin_pages": {
       "total": 4,

@@ -219,199 +219,161 @@ def pending_companies():
 def pending_courses():
     """View and manage pending course approvals"""
     try:
-        # Try complex query first
         courses = get_records('''
-            SELECT c.*, u.First, u.Last
+            SELECT c.*, u.First, u.Last, u.Email, i.InstructorID,
+                   GROUP_CONCAT(ct.TypeLabel) as CourseTypes
             FROM courses c
-            LEFT JOIN users u ON c.CreatedBy = u.UserID
+            JOIN instructor_courses ic ON c.CourseID = ic.CourseID
+            JOIN instructors i ON ic.InstructorID = i.InstructorID
+            JOIN users u ON i.UserID = u.UserID
+            LEFT JOIN course_types ct ON c.TypeID = ct.TypeID
             WHERE c.ApprovalStatus = 'Pending'
+            GROUP BY c.CourseID
             ORDER BY c.CreatedAt ASC
         ''')
-    except:
-        # Fallback to simple query
-        try:
-            courses = get_records('''
-                SELECT c.*
-                FROM courses c
-                WHERE c.ApprovalStatus = 'Pending'
-                ORDER BY c.CreatedAt ASC
-            ''')
-            # Add placeholder user info
-            for course in courses:
-                course['First'] = 'Unknown'
-                course['Last'] = 'User'
-        except:
-            courses = []
-    
-    return render_template('admin/pending_courses.html', courses=courses)
-
-@admin_bp.route('/approve-instructor/<int:instructor_id>', methods=['POST'])
-def approve_instructor(instructor_id):
-    """Approve or reject instructor application"""
-    action = request.form.get('action')
-    reason = request.form.get('reason', '')
-    
-    if not action:
-        flash('No action specified', 'danger')
-        return redirect(url_for('admin.pending_instructors'))
-    
-    try:
-        # Get instructor record by InstructorID (primary key)
-        instructor = get_record('SELECT * FROM instructors WHERE InstructorID = %s', (instructor_id,))
-        if not instructor:
-            flash('Instructor not found', 'danger')
-            return redirect(url_for('admin.pending_instructors'))
         
-        user_id = instructor['UserID']
-        
-        if action == 'approve':
-            # Update instructor approval status
-            execute_query('''
-                UPDATE instructors 
-                SET ApprovalStatus = 'Approved', ApprovedBy = %s, ApprovedAt = NOW()
-                WHERE InstructorID = %s
-            ''', (session['user_id'], instructor_id))
-            
-            # Activate the user account
-            execute_query('''
-                UPDATE users 
-                SET Status = 'Active', ApprovalStatus = 'Approved' 
-                WHERE UserID = %s
-            ''', (user_id,))
-            
-            flash('Instructor approved successfully', 'success')
-            
-        elif action == 'reject':
-            # Update instructor rejection status
-            execute_query('''
-                UPDATE instructors 
-                SET ApprovalStatus = 'Rejected', RejectionReason = %s
-                WHERE InstructorID = %s
-            ''', (reason, instructor_id))
-            
-            # Update user status to reflect rejection
-            execute_query('''
-                UPDATE users 
-                SET ApprovalStatus = 'Rejected' 
-                WHERE UserID = %s
-            ''', (user_id,))
-            
-            flash('Instructor application rejected', 'info')
-        else:
-            flash('Invalid action', 'danger')
-        
-        # Log the action if logging is available
-        try:
-            log_admin_action(f'instructor_{action}', 'instructor', instructor_id, 
-                            {'reason': reason, 'user_id': user_id})
-        except:
-            pass  # Don't fail if logging fails
-        
+        return render_template('admin/pending_courses.html', courses=courses)
     except Exception as e:
-        flash(f'Error processing instructor approval: {str(e)}', 'danger')
-    
-    return redirect(url_for('admin.pending_instructors'))
+        flash(f'Error loading pending courses: {str(e)}', 'danger')
+        return render_template('admin/pending_courses.html', courses=[])
 
-@admin_bp.route('/approve-company/<int:company_id>', methods=['POST'])
-def approve_company(company_id):
-    """Approve or reject company application"""
-    action = request.form.get('action')
-    reason = request.form.get('reason', '')
-    
-    if not action:
-        flash('No action specified', 'danger')
-        return redirect(url_for('admin.pending_companies'))
-    
-    try:
-        # Get company record by CompanyID (primary key)
-        company = get_record('SELECT * FROM companies WHERE CompanyID = %s', (company_id,))
-        if not company:
-            flash('Company not found', 'danger')
-            return redirect(url_for('admin.pending_companies'))
-        
-        user_id = company['UserID']
-        
-        if action == 'approve':
-            # Update company approval status
-            execute_query('''
-                UPDATE companies 
-                SET ApprovalStatus = 'Approved', ApprovedBy = %s, ApprovedAt = NOW()
-                WHERE CompanyID = %s
-            ''', (session['user_id'], company_id))
-            
-            # Activate the user account
-            execute_query('''
-                UPDATE users 
-                SET Status = 'Active', ApprovalStatus = 'Approved' 
-                WHERE UserID = %s
-            ''', (user_id,))
-            
-            flash('Company approved successfully', 'success')
-            
-        elif action == 'reject':
-            # Update company rejection status
-            execute_query('''
-                UPDATE companies 
-                SET ApprovalStatus = 'Rejected', RejectionReason = %s
-                WHERE CompanyID = %s
-            ''', (reason, company_id))
-            
-            # Update user status to reflect rejection
-            execute_query('''
-                UPDATE users 
-                SET ApprovalStatus = 'Rejected' 
-                WHERE UserID = %s
-            ''', (user_id,))
-            
-            flash('Company application rejected', 'info')
-        else:
-            flash('Invalid action', 'danger')
-        
-        # Log the action if logging is available
-        try:
-            log_admin_action(f'company_{action}', 'company', company_id, 
-                            {'reason': reason, 'user_id': user_id})
-        except:
-            pass  # Don't fail if logging fails
-        
-    except Exception as e:
-        flash(f'Error processing company approval: {str(e)}', 'danger')
-    
-    return redirect(url_for('admin.pending_companies'))
-
-@admin_bp.route('/approve-course/<int:course_id>', methods=['POST'])
+@admin_bp.route('/courses/<int:course_id>/approve', methods=['POST'])
 def approve_course(course_id):
-    """Approve or reject course"""
-    action = request.form.get('action')
-    reason = request.form.get('reason', '')
-    
+    """Approve a pending course"""
     try:
-        if action == 'approve':
-            execute_query('''
-                UPDATE courses 
-                SET ApprovalStatus = 'Approved', ApprovedBy = %s, ApprovedAt = NOW(), IsPublished = 1
-                WHERE CourseID = %s
-            ''', (session['user_id'], course_id))
-            
-            flash('Course approved and published successfully', 'success')
-            
-        elif action == 'reject':
-            execute_query('''
-                UPDATE courses 
-                SET ApprovalStatus = 'Rejected', RejectionReason = %s
-                WHERE CourseID = %s
-            ''', (reason, course_id))
-            
-            flash('Course rejected', 'info')
+        course = get_record('SELECT * FROM courses WHERE CourseID = %s', (course_id,))
+        if not course:
+            flash('Course not found', 'danger')
+            return redirect(url_for('admin.pending_courses'))
+        
+        execute_query('''
+            UPDATE courses 
+            SET ApprovalStatus = 'Approved', ApprovedBy = %s, ApprovedAt = NOW()
+            WHERE CourseID = %s
+        ''', (session['user_id'], course_id))
         
         # Log the action
-        log_admin_action(f'course_{action}', 'course', course_id, 
-                        {'reason': reason})
+        log_admin_action('course_approve', 'course', course_id, {
+            'course_title': course['Title'],
+            'reason': request.form.get('reason', '')
+        })
         
+        flash(f'Course "{course["Title"]}" has been approved', 'success')
     except Exception as e:
-        flash(f'Error processing course approval: {str(e)}', 'danger')
+        flash(f'Error approving course: {str(e)}', 'danger')
     
     return redirect(url_for('admin.pending_courses'))
+
+@admin_bp.route('/courses/<int:course_id>/reject', methods=['POST'])
+def reject_course(course_id):
+    """Reject a pending course"""
+    try:
+        course = get_record('SELECT * FROM courses WHERE CourseID = %s', (course_id,))
+        if not course:
+            flash('Course not found', 'danger')
+            return redirect(url_for('admin.pending_courses'))
+        
+        rejection_reason = request.form.get('reason', 'No reason provided')
+        
+        execute_query('''
+            UPDATE courses 
+            SET ApprovalStatus = 'Rejected', RejectionReason = %s, ApprovedBy = %s, ApprovedAt = NOW()
+            WHERE CourseID = %s
+        ''', (rejection_reason, session['user_id'], course_id))
+        
+        # Log the action
+        log_admin_action('course_reject', 'course', course_id, {
+            'course_title': course['Title'],
+            'reason': rejection_reason
+        })
+        
+        flash(f'Course "{course["Title"]}" has been rejected', 'success')
+    except Exception as e:
+        flash(f'Error rejecting course: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.pending_courses'))
+
+@admin_bp.route('/courses/<int:course_id>/toggle-publication', methods=['POST'])
+def toggle_course_publication(course_id):
+    """Toggle course publication status"""
+    try:
+        course = get_record('SELECT * FROM courses WHERE CourseID = %s', (course_id,))
+        if not course:
+            flash('Course not found', 'danger')
+            return redirect(url_for('admin.manage_courses'))
+        
+        # Only allow toggling for approved courses
+        if course['ApprovalStatus'] != 'Approved':
+            flash('Only approved courses can be published/unpublished', 'warning')
+            return redirect(url_for('admin.manage_courses'))
+        
+        new_status = not course['IsPublished']
+        
+        execute_query('''
+            UPDATE courses 
+            SET IsPublished = %s, UpdatedAt = NOW()
+            WHERE CourseID = %s
+        ''', (new_status, course_id))
+        
+        # Log the action
+        action = 'course_publish' if new_status else 'course_unpublish'
+        log_admin_action(action, 'course', course_id, {
+            'course_title': course['Title'],
+            'published': new_status
+        })
+        
+        status_text = 'published' if new_status else 'unpublished'
+        flash(f'Course "{course["Title"]}" has been {status_text}', 'success')
+        
+    except Exception as e:
+        flash(f'Error updating course publication status: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.manage_courses'))
+
+@admin_bp.route('/courses')
+def manage_courses():
+    """Manage all courses"""
+    try:
+        status_filter = request.args.get('status', 'all')
+        search = request.args.get('search', '')
+        
+        # Build query with filters
+        where_conditions = []
+        params = []
+        
+        if status_filter != 'all':
+            where_conditions.append('c.ApprovalStatus = %s')
+            params.append(status_filter)
+        
+        if search:
+            where_conditions.append('(c.Title LIKE %s OR c.Description LIKE %s)')
+            search_param = f'%{search}%'
+            params.extend([search_param, search_param])
+        
+        where_clause = 'WHERE ' + ' AND '.join(where_conditions) if where_conditions else ''
+        
+        courses = get_records(f'''
+            SELECT c.*, u.First, u.Last, u.Email,
+                   COUNT(DISTINCT cr.StudentID) as EnrolledStudents,
+                   ct.TypeLabel as CourseType
+            FROM courses c
+            JOIN instructor_courses ic ON c.CourseID = ic.CourseID
+            JOIN instructors i ON ic.InstructorID = i.InstructorID
+            JOIN users u ON i.UserID = u.UserID
+            LEFT JOIN course_registrations cr ON c.CourseID = cr.CourseID
+            LEFT JOIN course_types ct ON c.TypeID = ct.TypeID
+            {where_clause}
+            GROUP BY c.CourseID
+            ORDER BY c.CreatedAt DESC
+        ''', params)
+        
+        return render_template('admin/manage_courses.html', 
+                             courses=courses, 
+                             status_filter=status_filter,
+                             search=search)
+    except Exception as e:
+        flash(f'Error loading courses: {str(e)}', 'danger')
+        return render_template('admin/manage_courses.html', courses=[], status_filter='all', search='')
 
 @admin_bp.route('/subscriptions')
 def subscriptions():
@@ -735,19 +697,14 @@ def get_recent_activity():
 def log_admin_action(action, target_type, target_id, details=None):
     """Log admin actions for audit trail"""
     try:
-        execute_query('''
-            INSERT INTO admin_activity_log 
-            (AdminID, Action, TargetType, TargetID, NewValue, IPAddress, CreatedAt)
-            VALUES (%s, %s, %s, %s, %s, %s, NOW())
-        ''', (
-            session['user_id'],
-            action,
-            target_type,
-            target_id,
-            json.dumps(details) if details else None,
-            request.remote_addr
-        ))
+        admin_id = session.get('user_id')
+        if admin_id:
+            execute_query('''
+                INSERT INTO admin_activity_log (AdminID, Action, TargetType, TargetID, Description, CreatedAt)
+                VALUES (%s, %s, %s, %s, %s, NOW())
+            ''', (admin_id, action, target_type, target_id, json.dumps(details) if details else None))
     except Exception as e:
+        # Log error but don't interrupt the main action
         print(f"Error logging admin action: {e}")
 
 # Error handlers for admin blueprint

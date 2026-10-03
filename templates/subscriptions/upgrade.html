@@ -147,6 +147,7 @@
                         </div>
                         <div class="card-body">
                             <form method="POST" action="{{ url_for('subscriptions.checkout') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="plan_id" value="{{ plan.PlanID }}">
                                 
                                 <!-- Payment Method Selection -->

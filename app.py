@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
 from config import Config
+from flask_moment import Moment
 from extensions import mysql
 from routes.auth import auth_bp
 from routes.home import home_bp
@@ -15,7 +16,7 @@ from routes.subscriptions import subscriptions_bp
 from routes.pages import pages_bp
 from routes.help import help_bp
 from routes.uploads import uploads_bp
-from initialize_statuses import initialize_application_statuses
+#from initialize_statuses import initialize_application_statuses
 
 def create_app():
     app = Flask(__name__)
@@ -26,10 +27,12 @@ def create_app():
     app.config['MYSQL_UNIX_SOCKET'] = None  # Use TCP instead of Unix socket
     
     # Initialize extensions
-    mysql.init_app(app)
-      # Initialize app extensions and data - after MySQL is connected
-    with app.app_context():
-        initialize_application_statuses()
+    mysql.init_app(app)      # Initialize app extensions and data - after MySQL is connected
+#    with app.app_context():
+#        initialize_application_statuses()
+    
+    # Initialize Flask-Moment for date formatting
+    moment = Moment(app)
     
     # Setup CSRF protection
     csrf = CSRFProtect(app)
@@ -45,7 +48,7 @@ def create_app():
     app.register_blueprint(enrollments_bp)
     app.register_blueprint(jobs_bp)
     app.register_blueprint(assignments_bp)
-    app.register_blueprint(profile_bp, url_prefix='/profile')
+    app.register_blueprint(profile_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(subscriptions_bp)
     app.register_blueprint(pages_bp)

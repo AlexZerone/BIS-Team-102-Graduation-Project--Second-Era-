@@ -5,9 +5,20 @@ Handles FAQ, contact forms, privacy policy, and terms of service
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from models import execute_query, get_records, get_record
 from permissions import login_required
+from datetime import datetime
 
 
 help_bp = Blueprint('help', __name__, url_prefix='/help')
+
+@help_bp.route('/')
+def help_index():
+    """Main help page with navigation to different help sections"""
+    return render_template('help/index.html')
+
+@help_bp.route('/getting-started')
+def getting_started():
+    """Getting started guide for new users"""
+    return render_template('help/getting_started.html')
 
 @help_bp.route('/faq')
 def faq():
@@ -132,12 +143,12 @@ def contact():
 @help_bp.route('/privacy')
 def privacy():
     """Privacy policy page"""
-    return render_template('help/privacy.html')
+    return render_template('help/privacy.html', last_updated=datetime.utcnow())
 
 @help_bp.route('/terms')
 def terms():
     """Terms of service page"""
-    return render_template('help/terms.html')
+    return render_template('help/terms.html', last_updated=datetime.utcnow())
 
 @help_bp.route('/about')
 def about():

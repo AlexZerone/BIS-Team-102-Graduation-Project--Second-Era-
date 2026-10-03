@@ -29,25 +29,53 @@
                         <i class="fas fa-star me-2"></i>Current Plan Details
                     </h5>
                 </div>
-                <div class="card-body">
-                    <div class="row">
+                <div class="card-body">                    <div class="row">
                         <div class="col-md-6">
-                            <h4 class="text-primary fw-bold">{{ student.PlanName or 'Freemium' }}</h4>
-                            <p class="text-muted mb-3">{{ student.Description or 'Basic access to platform features' }}</p>
+                            <h4 class="text-primary fw-bold">
+                                {% if student.PlanName %}
+                                    {{ student.PlanName }}
+                                {% elif student.SubscriptionTier %}
+                                    {{ student.SubscriptionTier|title|replace('_', ' ') }}
+                                {% else %}
+                                    Freemium
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted mb-3">
+                                {% if student.Description %}
+                                    {{ student.Description }}
+                                {% elif student.SubscriptionTier == 'freemium' %}
+                                    Free access to introductory courses
+                                {% elif student.SubscriptionTier == 'basic' %}
+                                    Access to recordings and materials
+                                {% elif student.SubscriptionTier == 'standard' %}
+                                    Live sessions and interactive assessments
+                                {% elif student.SubscriptionTier == 'premium' %}
+                                    All features with personalized coaching
+                                {% elif student.SubscriptionTier == 'premium_annual' %}
+                                    Premium features with annual billing
+                                {% else %}
+                                    Basic access to platform features
+                                {% endif %}
+                            </p>
                             
                             <div class="mb-3">
                                 <strong>Price:</strong>
-                                {% if student.Price == 0 or not student.Price %}
+                                {% if not student.Price or student.Price == 0 or student.SubscriptionTier == 'freemium' %}
                                 <span class="badge bg-success">FREE</span>
                                 {% else %}
                                 <span class="fw-bold">${{ "%.2f"|format(student.Price) }}</span>
                                 <span class="text-muted">
-                                    /{% if student.BillingCycle == 'monthly' %}month{% else %}year{% endif %}
+                                    {% if student.BillingCycle == 'monthly' or student.SubscriptionTier in ['basic', 'standard', 'premium'] %}
+                                        /month
+                                    {% elif student.BillingCycle == 'annual' or student.SubscriptionTier == 'premium_annual' %}
+                                        /year
+                                    {% else %}
+                                        /month
+                                    {% endif %}
                                 </span>
                                 {% endif %}
                             </div>
-                            
-                            <div class="mb-3">
+                              <div class="mb-3">
                                 <strong>Status:</strong>
                                 {% if student.SubscriptionStatus == 'active' %}
                                 <span class="badge bg-success">Active</span>
@@ -55,8 +83,10 @@
                                 <span class="badge bg-warning">Cancelled</span>
                                 {% elif student.SubscriptionStatus == 'expired' %}
                                 <span class="badge bg-danger">Expired</span>
+                                {% elif student.SubscriptionStatus == 'inactive' %}
+                                <span class="badge bg-secondary">Inactive</span>
                                 {% else %}
-                                <span class="badge bg-secondary">Free</span>
+                                <span class="badge bg-info">{{ student.SubscriptionStatus|title if student.SubscriptionStatus else 'Free' }}</span>
                                 {% endif %}
                             </div>
                             
@@ -70,72 +100,222 @@
                             <div class="mb-3">
                                 <strong>
                                     {% if student.SubscriptionStatus == 'cancelled' %}Expires:{% else %}Next Billing:{% endif %}
-                                </strong>
-                                {{ student.SubscriptionEnd.strftime('%B %d, %Y') }}
-                                {% if student.SubscriptionEnd > moment().date() %}
+                                </strong>                                {{ student.SubscriptionEnd.strftime('%B %d, %Y') }}
+                                {% if student.SubscriptionEnd > current_date %}
                                 <small class="text-muted">
-                                    ({{ (student.SubscriptionEnd - moment().date()).days }} days remaining)
+                                    ({{ (student.SubscriptionEnd - current_date).days }} days remaining)
                                 </small>
                                 {% endif %}
                             </div>
                             {% endif %}
                         </div>
-                        
-                        <div class="col-md-6">
-                            {% if student.Features %}
+                          <div class="col-md-6">
                             <h6 class="fw-bold mb-3">Plan Features:</h6>
                             <ul class="list-unstyled">
-                                {% if student.Features.courses %}
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    {% if student.Features.courses == 'intro_only' %}
-                                    Introduction courses only
-                                    {% elif student.Features.courses == 'all_free' %}
-                                    All free courses
-                                    {% elif student.Features.courses == 'unlimited' %}
-                                    Unlimited course access
+                                {% if student.Features %}
+                                    {% if student.Features.courses %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        {% if student.Features.courses == 'intro_only' %}
+                                        Introduction courses only
+                                        {% elif student.Features.courses == 'recordings' %}
+                                        Course recordings access
+                                        {% elif student.Features.courses == 'live_and_recorded' %}
+                                        Live and recorded courses
+                                        {% elif student.Features.courses == 'all' %}
+                                        All courses access
+                                        {% else %}
+                                        {{ student.Features.courses|title }} courses
+                                        {% endif %}
+                                    </li>
                                     {% endif %}
-                                </li>
-                                {% endif %}
-                                
-                                {% if student.Features.certifications %}
-                                <li class="mb-2">
-                                    <i class="fas fa-certificate text-warning me-2"></i>
-                                    {{ student.Features.certifications|title }} certifications
-                                </li>
-                                {% endif %}
-                                
-                                {% if student.Features.live_sessions %}
-                                <li class="mb-2">
-                                    <i class="fas fa-video text-info me-2"></i>
-                                    Live sessions included
-                                </li>
-                                {% endif %}
-                                
-                                {% if student.Features.coaching %}
-                                <li class="mb-2">
-                                    <i class="fas fa-user-tie text-primary me-2"></i>
-                                    Personal coaching
-                                </li>
-                                {% endif %}
-                                
-                                {% if student.Features.support %}
-                                <li class="mb-2">
-                                    <i class="fas fa-headset text-secondary me-2"></i>
-                                    {{ student.Features.support|title }} support
-                                </li>
+                                    
+                                    {% if student.Features.certifications %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-certificate text-warning me-2"></i>
+                                        {% if student.Features.certifications == 'included' %}
+                                        Certifications included
+                                        {% elif student.Features.certifications == 'paid' %}
+                                        Paid certifications
+                                        {% else %}
+                                        {{ student.Features.certifications|title }} certifications
+                                        {% endif %}
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if student.Features.support %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-headset text-secondary me-2"></i>
+                                        {% if student.Features.support == 'community' %}
+                                        Community support
+                                        {% elif student.Features.support == 'email' %}
+                                        Email support
+                                        {% elif student.Features.support == 'priority' %}
+                                        Priority support
+                                        {% elif student.Features.support == '24_7' %}
+                                        24/7 support
+                                        {% else %}
+                                        {{ student.Features.support|title }} support
+                                        {% endif %}
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if student.Features.materials %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-book text-info me-2"></i>
+                                        {% if student.Features.materials == 'limited' %}
+                                        Limited materials
+                                        {% elif student.Features.materials == 'full' %}
+                                        Full materials access
+                                        {% else %}
+                                        {{ student.Features.materials|title }} materials
+                                        {% endif %}
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if student.Features.live_sessions %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-video text-info me-2"></i>
+                                        Live sessions included
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if student.Features.assessments %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-tasks text-primary me-2"></i>
+                                        Interactive assessments
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if student.Features.coaching %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-user-tie text-primary me-2"></i>
+                                        Personal coaching
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if student.Features.internships %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-briefcase text-success me-2"></i>
+                                        Internship opportunities
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% if student.Features.installments %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-credit-card text-info me-2"></i>
+                                        Installment payments available
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                    <!-- Default features based on subscription tier -->
+                                    {% if student.SubscriptionTier == 'freemium' %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Introduction courses only
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-certificate text-warning me-2"></i>
+                                        Paid certifications
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-headset text-secondary me-2"></i>
+                                        Community support
+                                    </li>
+                                    {% elif student.SubscriptionTier == 'basic' %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Course recordings access
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-certificate text-warning me-2"></i>
+                                        Certifications included
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-headset text-secondary me-2"></i>
+                                        Email support
+                                    </li>
+                                    {% elif student.SubscriptionTier == 'standard' %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Live and recorded courses
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-certificate text-warning me-2"></i>
+                                        Certifications included
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-video text-info me-2"></i>
+                                        Live sessions included
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-headset text-secondary me-2"></i>
+                                        Priority support
+                                    </li>
+                                    {% elif student.SubscriptionTier in ['premium', 'premium_annual'] %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        All courses access
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-certificate text-warning me-2"></i>
+                                        Certifications included
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-video text-info me-2"></i>
+                                        Live sessions included
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-user-tie text-primary me-2"></i>
+                                        Personal coaching
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-briefcase text-success me-2"></i>
+                                        Internship opportunities
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-headset text-secondary me-2"></i>
+                                        24/7 support
+                                    </li>
+                                    {% if student.SubscriptionTier == 'premium_annual' %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-credit-card text-info me-2"></i>
+                                        Installment payments available
+                                    </li>
+                                    {% endif %}
+                                    {% endif %}
                                 {% endif %}
                             </ul>
-                            {% endif %}
                         </div>
-                    </div>
-                    
-                    <!-- Action Buttons -->
+                    </div>                    <!-- Action Buttons -->
                     <div class="d-flex gap-2 mt-4">
-                        {% if student.SubscriptionTier != 'premium_annual' %}
-                        <a href="{{ url_for('subscriptions.upgrade', plan_name='premium_annual') }}" 
+                        {% if student.SubscriptionTier in ['freemium', 'basic', 'standard', 'premium'] %}
+                        <a href="{{ url_for('subscriptions.upgrade', plan_name='Premium Annual') }}" 
                            class="btn btn-primary">
-                            <i class="fas fa-arrow-up me-1"></i>Upgrade Plan
+                            <i class="fas fa-arrow-up me-1"></i>Upgrade to Premium Annual
+                        </a>
+                        {% endif %}
+                        
+                        {% if student.SubscriptionTier == 'freemium' %}
+                        <a href="{{ url_for('subscriptions.upgrade', plan_name='Basic Plan') }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-up me-1"></i>Upgrade to Basic
+                        </a>
+                        {% elif student.SubscriptionTier == 'basic' %}
+                        <a href="{{ url_for('subscriptions.upgrade', plan_name='Standard Plan') }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-up me-1"></i>Upgrade to Standard
+                        </a>
+                        {% elif student.SubscriptionTier == 'standard' %}
+                        <a href="{{ url_for('subscriptions.upgrade', plan_name='Premium Plan') }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-up me-1"></i>Upgrade to Premium
+                        </a>
+                        {% endif %}
+                        
+                        {% if student.SubscriptionStatus in ['active', 'inactive'] and student.SubscriptionTier != 'freemium' %}
+                        <a href="{{ url_for('subscriptions.manage') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-cog me-1"></i>Manage Subscription
                         </a>
                         {% endif %}
                         
@@ -149,10 +329,9 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Installment Information -->
+          <!-- Installment Information -->
         <div class="col-md-4">
-            {% if installment_info and installment_info.total_installments > 1 %}
+            {% if installment_info and installment_info.total_installments and installment_info.total_installments > 1 %}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-info text-white">
                     <h6 class="mb-0">
@@ -174,13 +353,13 @@
                     
                     <div class="mb-2">
                         <strong>Next Payment:</strong>
-                        <span class="float-end">${{ "%.2f"|format(student.Price / 12) }}</span>
+                        <span class="float-end">${{ "%.2f"|format((student.Price or 999.99) / 12) }}</span>
                     </div>
                     
                     <div class="mb-2">
                         <strong>Remaining:</strong>
                         <span class="float-end">
-                            ${{ "%.2f"|format((student.Price / 12) * (installment_info.total_installments - installment_info.paid_installments)) }}
+                            ${{ "%.2f"|format(((student.Price or 999.99) / 12) * (installment_info.total_installments - installment_info.paid_installments)) }}
                         </span>
                     </div>
                 </div>
@@ -288,8 +467,8 @@
             <div class="modal-header">
                 <h5 class="modal-title">Cancel Subscription</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="{{ url_for('subscriptions.cancel_subscription') }}">
+            </div>            <form method="POST" action="{{ url_for('subscriptions.cancel_subscription') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle me-2"></i>
