@@ -54,8 +54,15 @@ src/server/      business rules: learning.ts (enroll, submit, grade, certificate
 src/lib/         auth (DB sessions, scrypt), plans, validation
 src/app/         pages and server actions, grouped by area (teach, learn, company, admin, …)
 drizzle/         generated SQL migrations
-_legacy/         the previous Flask/MySQL implementation, kept for reference
 docs/            original idea and the 2025 project plan
+```
+
+## Previous version
+
+The original Flask/MySQL implementation is preserved in git history under the `flask-legacy` tag:
+
+```bash
+git checkout flask-legacy
 ```
 
 ## Known limitations
