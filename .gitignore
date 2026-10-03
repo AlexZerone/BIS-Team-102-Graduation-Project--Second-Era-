@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------
-# .gitignore — AdsDash / Graduation Project (BIS)
+# .gitignore — Second Era / Graduation Project (BIS)
 # What NOT to commit: Secrets, local data, build junk, editor cruft.
 # ---------------------------------------------------------------
 
@@ -57,8 +57,23 @@ _test/
 _report/
 .write_test
 
-# Agent & AI Tool Artifacts
+# Agent & AI Tool Artifacts (per-developer configs, some with absolute local paths)
 .agents/
+.claude/
+.codebuddy/
+.gemini/
+.kiro/
+.qoder/
+.github/instructions/
+.mcp.json
+opencode.jsonc
+.cursorrules
+.windsurfrules
+AGENTS.md
+CLAUDE.md
+CODEBUDDY.md
+GEMINI.md
+QODER.md
 
 # Editors & OS Files
 .vscode/
@@ -67,3 +82,17 @@ _report/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Added by code-review-graph
+.code-review-graph/
+
+# Next.js / Node
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+
+# Local embedded database and uploads
+.data/

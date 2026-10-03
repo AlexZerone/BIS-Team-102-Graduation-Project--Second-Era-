@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f7f5;
+  --surface: #ffffff;
+  --foreground: #1c1c1a;
+  --muted: #5f5f5a;
+  --line: #e2e2dc;
+  --brand: #0f6e5c;
+  --brand-ink: #ffffff;
+  --danger: #b42318;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #121412;
+    --surface: #1b1e1c;
+    --foreground: #ececea;
+    --muted: #a3a6a1;
+    --line: #2e322f;
+    --brand: #3fb39a;
+    --brand-ink: #0b1411;
+    --danger: #f97066;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Lesson and description text keeps the author's line breaks. */
+.prose-text {
+  white-space: pre-line;
+  line-height: 1.65;
+}

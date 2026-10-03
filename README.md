@@ -1,110 +1,66 @@
-# BIS Team 102 Graduation Project: Sec Era 🎓
+# Second Era
 
-Welcome to Team 102 - Graduation Project! We are a group of BIS (Business Information Systems) students working under the guidance of our university doctor to bring our graduation project to life.
+Practical, company-backed training that turns final-year students and fresh graduates into verified, hire-ready interns.
+This is the BIS graduation project, Team 102, Helwan University.
 
-**Sec Era** is a comprehensive educational and career platform designed to connect education with innovative security skills and career opportunities.
+## How it works
 
----
+1. **Instructors** build courses, optionally with an **industry partner** company, made of lessons and practical assessments. An admin reviews each course before it's published.
+2. **Students** enroll (gated by plan), submit their work, and get it graded by the instructor.
+3. When every assessment is graded and the overall score reaches the course's pass mark, the student automatically receives a **certificate** with a public verification page (`/verify/<code>`).
+4. **Companies** post jobs that require specific certificates. Only certified students can apply, and companies see applicants **ranked by their verified score**.
+5. **Admins** approve instructor and company accounts, review courses, suspend users, and read contact messages. Every admin action is recorded in an audit log.
 
-## 🎯 Project Overview & Purpose
-Sec Era bridges the gap between learning and employment in the cybersecurity space. It provides a multi-tenant ecosystem where:
-- **Students** can enroll in courses, submit assignments, manage their profiles, upload resumes, and apply for jobs.
-- **Instructors** can manage courses, upload materials, grade assignments, and issue certificates.
-- **Companies** can post job openings, receive applications, and find qualified candidates.
-- **Administrators** can oversee the entire platform, manage user approvals, and monitor platform health.
+## Stack
 
-## ✨ Key Features
-* **Role-Based Access Control (RBAC):** Distinct dashboards and permissions for Students, Instructors, Companies, and Admins.
-* **Course & Enrollment Management:** End-to-end course lifecycle, from creation by instructors to enrollment and completion by students.
-* **Career Portal:** Built-in job board where companies can post openings and students can submit applications directly.
-* **File Management:** Secure uploads for profile images, student resumes, course materials, and administrative documents.
-* **Subscriptions:** Tiered access plans for platform users.
-* **Responsive Modern UI:** Built with Bootstrap 5.3, featuring dark mode support, micro-animations, and dynamic interactions.
+Next.js 16 (App Router, Server Actions) · TypeScript · Drizzle ORM · PostgreSQL · Zod · Tailwind CSS 4 · Vitest
 
-## 🛠 Architecture & Tech Stack
-* **Backend Framework:** Python 3.12 / Flask 3.0
-* **Database:** MySQL (interfaced via `Flask-MySQLdb` and `PyMySQL`)
-* **Frontend:** HTML5, Vanilla CSS3, Bootstrap 5.3, JavaScript
-* **Templating:** Jinja2
-* **Forms & Security:** Flask-WTF, Werkzeug, CSRF Protection
+Local development needs **no database server**. Without `DATABASE_URL`, the app uses an embedded Postgres ([PGlite](https://pglite.dev)) stored in `.data/`.
 
-> **Note on Database Architecture:** This project intentionally uses raw SQL queries via MySQL cursors to interact with the database instead of an ORM (like SQLAlchemy). 
+## Getting started
 
-## ⚙️ Prerequisites
-- Python 3.10+ (Recommended: 3.12)
-- MySQL Server (v8.0+)
-- `pip` (Python package manager)
+Requires Node.js 22 or later.
 
-## 🚀 Installation & Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd "Graduation Project (BIS)"
-   ```
-
-2. **Create and activate a virtual environment**
-   ```bash
-   # Windows
-   python -m venv .venv
-   .venv\Scripts\activate
-
-   # macOS/Linux
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Database Setup**
-   - Ensure your MySQL server is running.
-   - Create a database named `flask0`.
-   - Import the database schema and initial data:
-     ```bash
-     mysql -u root -p flask0 < database/flask0.sql
-     ```
-
-5. **Configuration**
-   The application uses default local configuration in `config.py`. For production or custom local setups, modify the following variables in `config.py` or set them as environment variables:
-   ```python
-   SECRET_KEY = 'your_secret_key'
-   MYSQL_HOST = 'localhost'
-   MYSQL_USER = 'root'
-   MYSQL_PASSWORD = ''
-   MYSQL_DB = 'flask0'
-   ```
-
-6. **Run the Application**
-   ```bash
-   python app.py
-   ```
-   The application will be accessible at `http://localhost:5000`.
-
-## 📂 Project Structure
-```
-.
-├── app.py                  # Application factory and entry point
-├── config.py               # Application configuration
-├── models.py               # Database interaction helpers and file validation
-├── forms.py                # Flask-WTF form definitions
-├── extensions.py           # Shared Flask extensions (e.g., mysql)
-├── permissions.py          # RBAC decorators (@login_required)
-├── routes/                 # Flask Blueprints (auth, courses, jobs, dashboard, etc.)
-├── database/               # SQL schema files (flask0.sql)
-├── static/                 # CSS, JavaScript, images, and uploaded files
-└── templates/              # Jinja2 HTML templates and reusable components
-```
-
-## 🧪 Testing
-The repository contains some legacy tests and scripts in the `_test/` directory. Note that the tests currently rely on a live MySQL database matching the local config.
-
-To run tests (requires `pytest`):
 ```bash
-python -m pytest
+npm install
+npm run db:seed     # applies migrations and loads demo data
+npm run dev         # http://localhost:3000
 ```
 
-## 📝 License & Attribution
-Created by Team 102 - BIS. All rights reserved.
+Demo accounts and their shared password are defined at the top of [`scripts/seed.mts`](scripts/seed.mts) (`admin@secondera.test`, `mona@secondera.test`, `hr@nilesoft.test`, `sara@student.test`, …). To wipe and reseed, stop the dev server and run `npm run db:seed -- --reset`. PGlite allows one process at a time.
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` / `npm start` | Production build / server |
+| `npm test` | Vitest: core rules against an in-memory Postgres |
+| `npm run typecheck` / `npm run lint` | TypeScript / ESLint |
+| `npm run db:generate` | Create a migration after editing `src/db/schema.ts` |
+| `npm run db:migrate` | Apply migrations |
+| `npm run db:seed` | Migrate and load demo data |
+
+## Configuration
+
+See [`.env.example`](.env.example). In production set `DATABASE_URL` to a Postgres database (Neon, Supabase, RDS, …), run `npm run db:migrate`, then `npm run build && npm start`.
+
+## Project layout
+
+```
+src/db/          schema.ts (the data model), connection, migrations runner
+src/server/      business rules: learning.ts (enroll, submit, grade, certificates),
+                 hiring.ts (eligibility, applying, ranking), payments.ts, storage.ts
+src/lib/         auth (DB sessions, scrypt), plans, validation
+src/app/         pages and server actions, grouped by area (teach, learn, company, admin, …)
+drizzle/         generated SQL migrations
+_legacy/         the previous Flask/MySQL implementation, kept for reference
+docs/            original idea and the 2025 project plan
+```
+
+## Known limitations
+
+- **Payments are simulated.** Upgrading always succeeds and records a `simulated` payment. `src/server/payments.ts` marks where a Paymob/Fawry checkout and webhook would go.
+- **Resumes go to local disk** (`STORAGE_DIR`). Serverless hosts need object storage (S3/R2) behind `src/server/storage.ts`.
+- No email sending (verification, password reset, notifications) and no login rate limiting yet.
+- Certificates are immutable: re-grading after a certificate is issued doesn't revoke it.
