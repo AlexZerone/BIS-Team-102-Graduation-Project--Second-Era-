@@ -1,13 +1,11 @@
-import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
+// 44px tall on touch screens, compact from the sm breakpoint. Focus ring comes from globals.css.
+const base = "inline-flex min-h-11 items-center justify-center rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50 sm:min-h-9";
 export const btn = {
-  primary:
-    "inline-flex items-center justify-center rounded-md bg-brand px-4 py-2 text-sm font-medium text-brand-ink hover:opacity-90 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-  secondary:
-    "inline-flex items-center justify-center rounded-md border border-line bg-surface px-4 py-2 text-sm font-medium hover:bg-background disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-  danger:
-    "inline-flex items-center justify-center rounded-md border border-danger px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50",
+  primary: `${base} bg-brand text-brand-ink hover:opacity-90`,
+  secondary: `${base} border border-field bg-surface hover:bg-background`,
+  danger: `${base} border border-danger text-danger hover:bg-danger/10`,
 };
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -17,7 +15,7 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 const tones = {
   neutral: "bg-line/60 text-foreground",
   brand: "bg-brand/15 text-brand",
-  warn: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  warn: "bg-amber-500/15 text-amber-800 dark:text-amber-300",
   danger: "bg-danger/15 text-danger",
 };
 
@@ -41,8 +39,9 @@ export function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-lg border border-dashed border-line p-6 text-center text-muted">{children}</p>;
 }
 
+// 16px text on phones stops iOS zooming into fields; aria-invalid is set by ActionForm.
 const inputClass =
-  "mt-1 block w-full rounded-md border border-line bg-surface px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand";
+  "mt-1 block w-full rounded-md border border-field bg-surface px-3 py-2 text-base sm:text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand aria-invalid:border-danger aria-invalid:ring-1 aria-invalid:ring-danger";
 
 type FieldProps = { label: string; name: string; hint?: string } & (
   | ({ as?: "input" } & ComponentProps<"input">)
@@ -81,12 +80,5 @@ export function Field({ label, hint, ...props }: FieldProps) {
   );
 }
 
-export function NavLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link href={href} className="rounded-md px-2 py-1 text-sm text-muted hover:bg-line/50 hover:text-foreground">
-      {children}
-    </Link>
-  );
-}
 
 export const fmtDate = (d: Date | null) => (d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");

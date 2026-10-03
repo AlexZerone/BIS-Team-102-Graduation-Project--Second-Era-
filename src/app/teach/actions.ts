@@ -7,7 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { assessments, companies, courses, lessons, users } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
-import { firstError, id, optionalLink } from "@/lib/validation";
+import { fieldError, id, optionalLink } from "@/lib/validation";
 import { gradeSubmission } from "@/server/learning";
 import { DomainError, attempt, type ActionState } from "@/server/errors";
 
@@ -43,7 +43,7 @@ async function editableCourse(instructorId: number, courseId: number) {
 export async function createCourse(_: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("instructor");
   const parsed = courseSchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   let courseId = 0;
   const r = await attempt(async () => {
     await checkPartner(parsed.data.partnerCompanyId);
@@ -56,7 +56,7 @@ export async function createCourse(_: ActionState, form: FormData): Promise<Acti
 export async function updateCourse(courseId: number, _: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("instructor");
   const parsed = courseSchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   return attempt(async () => {
     await editableCourse(user.id, courseId);
     await checkPartner(parsed.data.partnerCompanyId);
@@ -75,7 +75,7 @@ const lessonSchema = z.object({
 export async function addLesson(courseId: number, _: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("instructor");
   const parsed = lessonSchema.safeParse({ title: form.get("title") ?? "", body: form.get("body") ?? "", videoUrl: form.get("videoUrl") ?? "" });
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   return attempt(async () => {
     await editableCourse(user.id, courseId);
     const [{ last }] = await db.select({ last: max(lessons.position) }).from(lessons).where(eq(lessons.courseId, courseId));
@@ -94,7 +94,7 @@ const assessmentSchema = z.object({
 export async function addAssessment(courseId: number, _: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("instructor");
   const parsed = assessmentSchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   return attempt(async () => {
     await editableCourse(user.id, courseId);
     await db.insert(assessments).values({ ...parsed.data, courseId });
@@ -133,7 +133,7 @@ export async function gradeAction(courseId: number, submissionId: number, _: Act
   const parsed = z
     .object({ score: z.coerce.number({ message: "Enter a score." }).int("Use a whole number."), feedback: z.string().trim().max(5000) })
     .safeParse({ score: form.get("score"), feedback: form.get("feedback") ?? "" });
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   return attempt(async () => {
     const cert = await gradeSubmission(user.id, submissionId, parsed.data.score, parsed.data.feedback || null);
     revalidatePath(`/teach/${courseId}/grade`);

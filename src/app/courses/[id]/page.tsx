@@ -74,8 +74,10 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   } else if (user) cta = null;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-      <article>
+    // Header, then the action panel, then details: on phones the Enroll button sits right
+    // under the title; on desktop the panel spans both rows on the right and stays in view.
+    <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[1fr_320px]">
+      <header className="lg:col-start-1">
         {course.status !== "published" && (
           <p className="mb-4">
             <Badge tone="warn">Preview: {course.status}</Badge>
@@ -83,22 +85,18 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         )}
         <div className="flex flex-wrap gap-2">
           <Badge>{course.level}</Badge>
-          <Badge tone={course.requiredPlan === "free" ? "neutral" : "warn"}>{PLANS[course.requiredPlan].name} plan</Badge>
-          {partner && <Badge tone="brand">Designed with {partner}</Badge>}
+          {course.requiredPlan !== "free" && <Badge tone="warn">{PLANS[course.requiredPlan].name} plan</Badge>}
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">{course.title}</h1>
         <p className="mt-2 text-muted">By {instructor}</p>
-        <p className="prose-text mt-6">{course.description}</p>
+        {partner && (
+          <p className="mt-1 text-sm">
+            Designed with industry partner <strong>{partner}</strong>
+          </p>
+        )}
+      </header>
 
-        <h2 className="mt-8 text-lg font-semibold">Lessons</h2>
-        <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
-          {lessonList.map((l) => (
-            <li key={l.title}>{l.title}</li>
-          ))}
-        </ol>
-      </article>
-
-      <aside className="space-y-4">
+      <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
         <Card>
           <h2 className="font-semibold">Practical assessments</h2>
           <ul className="mt-2 space-y-1 text-sm text-muted">
@@ -114,6 +112,16 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           {cta && <div className="mt-4">{cta}</div>}
         </Card>
       </aside>
+
+      <div className="max-w-prose lg:col-start-1">
+        <p className="prose-text">{course.description}</p>
+        <h2 className="mt-8 text-lg font-semibold">Lessons</h2>
+        <ol className="mt-2 list-decimal space-y-1 ps-5">
+          {lessonList.map((l) => (
+            <li key={l.title}>{l.title}</li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }

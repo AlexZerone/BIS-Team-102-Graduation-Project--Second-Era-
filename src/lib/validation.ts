@@ -10,5 +10,12 @@ export const optionalLink = z
 
 export const id = z.coerce.number().int().positive();
 
-/** First validation message, for showing in a form. */
-export const firstError = (e: z.ZodError) => e.issues[0]?.message ?? "Invalid input.";
+/** The first validation problem as form state: the message, plus which field to highlight. */
+export const fieldError = (e: z.ZodError) => {
+  const issue = e.issues[0];
+  return { error: issue?.message ?? "Invalid input.", field: issue?.path[0]?.toString() };
+};
+
+/** Only same-site paths, so ?next= can't send users to another website after sign-in. */
+export const safeNext = (next: unknown) =>
+  typeof next === "string" && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : null;

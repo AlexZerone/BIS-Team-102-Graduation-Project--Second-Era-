@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, courses } from "@/db/schema";
@@ -28,9 +29,10 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
         <label htmlFor="q" className="sr-only">
           Search courses
         </label>
-        <input id="q" name="q" defaultValue={query} placeholder="Search courses" className="w-full max-w-sm rounded-md border border-line bg-surface px-3 py-2 text-sm" />
+        <input id="q" name="q" defaultValue={query} placeholder="Search courses" type="search" className="w-full max-w-sm rounded-md border border-field bg-surface px-3 py-2 text-base sm:text-sm" />
         <button className={btn.secondary}>Search</button>
       </form>
+      <h2 className="sr-only">{query ? `Results for "${query}"` : "All courses"}</h2>
       {rows.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map(({ course, partner }) => (
@@ -38,7 +40,12 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
           ))}
         </div>
       ) : (
-        <Empty>No courses match your search.</Empty>
+        <Empty>
+          No courses match “{query}”.{" "}
+          <Link href="/courses" className="text-brand hover:underline">
+            Clear search
+          </Link>
+        </Empty>
       )}
     </>
   );

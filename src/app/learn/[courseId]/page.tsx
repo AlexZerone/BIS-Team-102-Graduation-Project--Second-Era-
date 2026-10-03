@@ -8,7 +8,13 @@ import { ActionForm } from "@/components/action-form";
 import { Badge, Card, Field, PageHeader } from "@/components/ui";
 import { submitAction } from "./actions";
 
-export const metadata = { title: "Learn" };
+export async function generateMetadata({ params }: PageProps<"/learn/[courseId]">) {
+  const [c] = await db
+    .select({ title: courses.title })
+    .from(courses)
+    .where(and(eq(courses.id, Number((await params).courseId) || 0), eq(courses.status, "published")));
+  return { title: c ? `Learn: ${c.title}` : "Learn" };
+}
 
 export default async function LearnPage({ params }: PageProps<"/learn/[courseId]">) {
   const user = await requireRole("student");
@@ -32,6 +38,14 @@ export default async function LearnPage({ params }: PageProps<"/learn/[courseId]
     db.select().from(certificates).where(and(eq(certificates.courseId, courseId), eq(certificates.studentId, user.id))),
   ]);
   const graded = tasks.filter((t) => t.sub?.gradedAt).length;
+  const toSubmit = tasks.filter((t) => !t.sub).map((t) => t.task.title);
+  const next = cert
+    ? null
+    : toSubmit.length
+      ? `Next: submit ${toSubmit.join(", ")}.`
+      : graded < tasks.length
+        ? "All work is submitted. Your instructor will grade it."
+        : null;
 
   return (
     <>
@@ -40,6 +54,12 @@ export default async function LearnPage({ params }: PageProps<"/learn/[courseId]
         subtitle={`${graded} of ${tasks.length} assessments graded · pass mark ${row.course.passingScore}%`}
         action={<Link href={`/courses/${courseId}`} className="text-sm text-brand hover:underline">Course overview</Link>}
       />
+      {tasks.length > 0 && !cert && (
+        <div className="-mt-3 mb-6 max-w-md">
+          <progress value={graded} max={tasks.length} aria-label="Assessments graded" className="h-2 w-full accent-brand" />
+          {next && <p className="mt-1 text-sm">{next}</p>}
+        </div>
+      )}
 
       {cert && (
         <Card className="mb-6 border-brand">
@@ -72,7 +92,7 @@ export default async function LearnPage({ params }: PageProps<"/learn/[courseId]
                 <summary className="cursor-pointer font-medium">
                   {l.position}. {l.title}
                 </summary>
-                <p className="prose-text mt-3 text-sm">{l.body}</p>
+                <p className="prose-text mt-3 max-w-prose">{l.body}</p>
                 {l.videoUrl && (
                   <a href={l.videoUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-brand hover:underline">
                     Watch video

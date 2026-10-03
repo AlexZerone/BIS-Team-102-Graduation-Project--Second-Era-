@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHash, randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
@@ -58,7 +58,10 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 /** Signed in, any status. Pending/rejected users can still see their dashboard. */
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    const here = (await headers()).get("x-pathname"); // set by src/proxy.ts
+    redirect(here && here !== "/" ? `/login?next=${encodeURIComponent(here)}` : "/login");
+  }
   return user;
 }
 

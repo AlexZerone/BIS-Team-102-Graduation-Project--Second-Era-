@@ -33,40 +33,42 @@ export async function InstructorDashboard({ userId }: { userId: number }) {
         </Link>
       </div>
       {mine.length ? (
-        <table className="mt-4 w-full text-left text-sm">
-          <thead className="text-muted">
-            <tr>
-              <th className="py-2 font-medium">Course</th>
-              <th className="font-medium">Status</th>
-              <th className="font-medium">Students</th>
-              <th className="font-medium">To grade</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {mine.map((c) => (
-              <tr key={c.id}>
-                <td className="py-2">
-                  <Link href={`/teach/${c.id}`} className="hover:text-brand">
-                    {c.title}
-                  </Link>
-                </td>
-                <td>
-                  <Badge tone={STATUS_TONE[c.status]}>{c.status}</Badge>
-                </td>
-                <td>{n(students, c.id)}</td>
-                <td>
-                  {n(toGrade, c.id) ? (
-                    <Link href={`/teach/${c.id}/grade`} className="font-medium text-brand hover:underline">
-                      {n(toGrade, c.id)} waiting
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
-                </td>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[480px] text-start text-sm">
+            <thead className="text-muted">
+              <tr>
+                <th className="py-2 font-medium">Course</th>
+                <th className="font-medium">Status</th>
+                <th className="font-medium">Students</th>
+                <th className="font-medium">To grade</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {mine.map((c) => (
+                <tr key={c.id}>
+                  <td className="py-2">
+                    <Link href={`/teach/${c.id}`} className="hover:text-brand">
+                      {c.title}
+                    </Link>
+                  </td>
+                  <td>
+                    <Badge tone={STATUS_TONE[c.status]}>{c.status}</Badge>
+                  </td>
+                  <td>{n(students, c.id)}</td>
+                  <td>
+                    {n(toGrade, c.id) ? (
+                      <Link href={`/teach/${c.id}/grade`} className="font-medium text-brand hover:underline">
+                        {n(toGrade, c.id)} waiting
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <div className="mt-4">
           <Empty>Create your first course. It goes live after an admin reviews it.</Empty>

@@ -8,6 +8,7 @@ import { PLANS } from "@/lib/plans";
 import { applyPaymobTransaction } from "@/server/payments";
 import { fieldsFromRedirect, paymobConfig, verifyTransaction } from "@/server/paymob";
 import { Card, PageHeader, btn, fmtDate } from "@/components/ui";
+import { PaymentPoller } from "./poller";
 
 export const metadata = { title: "Payment" };
 
@@ -61,9 +62,8 @@ export default async function PaymentReturnPage({ params, searchParams }: PagePr
     );
   return (
     <Result title="Confirming your payment…">
-      {/* Re-check every few seconds until Paymob's confirmation arrives. */}
-      <meta httpEquiv="refresh" content="4" />
       <p>We&apos;re waiting for Paymob to confirm your {plan} plan payment. This page updates on its own.</p>
+      <PaymentPoller />
       <Link href="/dashboard" className={btn.secondary}>
         Go to dashboard
       </Link>

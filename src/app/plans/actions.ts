@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
-import { firstError } from "@/lib/validation";
+import { fieldError } from "@/lib/validation";
 import { startCheckout } from "@/server/payments";
 import { attempt, type ActionState } from "@/server/errors";
 
@@ -20,7 +20,7 @@ const schema = z.object({
 export async function checkoutAction(plan: string, _: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("student");
   const parsed = schema.safeParse({ plan, phone: form.get("phone") ?? "" });
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   let url = "";
   const r = await attempt(async () => {
     url = await startCheckout(user, parsed.data.plan, parsed.data.phone);

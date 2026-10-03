@@ -53,7 +53,7 @@ export default async function GradePage({ params }: PageProps<"/teach/[id]/grade
                 <ActionForm action={gradeAction.bind(null, id, sub.id)} submit={sub.gradedAt ? "Re-grade" : "Save grade"}>
                   <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
                     <Field label={`Score / ${maxScore}`} name="score" type="number" min={0} max={maxScore} defaultValue={sub.score ?? ""} required />
-                    <Field label="Feedback" name="feedback" defaultValue={sub.feedback ?? ""} />
+                    <Field as="textarea" rows={3} label="Feedback" name="feedback" defaultValue={sub.feedback ?? ""} hint="The student sees this with their score." />
                   </div>
                 </ActionForm>
               </div>

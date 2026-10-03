@@ -7,7 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { applications, companies, courses, jobRequirements, jobs } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
-import { firstError, id } from "@/lib/validation";
+import { fieldError, id } from "@/lib/validation";
 import { DomainError, attempt, type ActionState } from "@/server/errors";
 
 async function myCompany(userId: number) {
@@ -38,7 +38,7 @@ const jobSchema = z.object({
 export async function createJob(_: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("company");
   const parsed = jobSchema.safeParse({ ...Object.fromEntries(form), requiredCourses: form.getAll("requiredCourses") });
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   const { requiredCourses, ...data } = parsed.data;
   const company = await myCompany(user.id);
   let jobId = 0;

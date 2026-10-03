@@ -58,8 +58,9 @@ export default async function JobPage({ params }: PageProps<"/jobs/[id]">) {
   } else if (user) panel = null;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-      <article>
+    // Same order as the course page: header, requirements + Apply, then the description.
+    <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[1fr_320px]">
+      <header className="lg:col-start-1">
         <Badge>{JOB_TYPES[job.type]}</Badge>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">{job.title}</h1>
         <p className="mt-1 text-muted">
@@ -67,9 +68,8 @@ export default async function JobPage({ params }: PageProps<"/jobs/[id]">) {
           {job.location && ` · ${job.location}`} · posted {fmtDate(job.createdAt)}
           {job.deadline && ` · apply by ${fmtDate(job.deadline)}`}
         </p>
-        <p className="prose-text mt-6">{job.description}</p>
-      </article>
-      <aside>
+      </header>
+      <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
         <Card>
           <h2 className="font-semibold">Requirements</h2>
           {requires.length ? (
@@ -89,6 +89,7 @@ export default async function JobPage({ params }: PageProps<"/jobs/[id]">) {
           {panel && <div className="mt-4">{panel}</div>}
         </Card>
       </aside>
+      <p className="prose-text max-w-prose lg:col-start-1">{job.description}</p>
     </div>
   );
 }

@@ -6,6 +6,7 @@
   --foreground: #1c1c1a;
   --muted: #5f5f5a;
   --line: #e2e2dc;
+  --field: #85857e; /* form control borders: 3:1 against surface (WCAG 1.4.11) */
   --brand: #0f6e5c;
   --brand-ink: #ffffff;
   --danger: #b42318;
@@ -18,6 +19,7 @@
     --foreground: #ececea;
     --muted: #a3a6a1;
     --line: #2e322f;
+    --field: #6b706c;
     --brand: #3fb39a;
     --brand-ink: #0b1411;
     --danger: #f97066;
@@ -30,6 +32,7 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-field: var(--field);
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
   --color-danger: var(--danger);
@@ -42,8 +45,22 @@ body {
   color: var(--foreground);
 }
 
+/* One focus ring for every interactive element, keyboard only. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
 /* Lesson and description text keeps the author's line breaks. */
 .prose-text {
   white-space: pre-line;
   line-height: 1.65;
+}
+
+/* Registration: the company name field appears only for the company role (works without JS). */
+.company-only {
+  display: none;
+}
+form:has(input[name="role"][value="company"]:checked) .company-only {
+  display: block;
 }

@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { companies, sessions, studentProfiles, users } from "@/db/schema";
 import { requireRole, startSession } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { firstError, optionalLink } from "@/lib/validation";
+import { fieldError, optionalLink } from "@/lib/validation";
 import { attempt, type ActionState } from "@/server/errors";
 import { deleteStored, saveResume } from "@/server/storage";
 
@@ -25,7 +25,7 @@ const studentSchema = z.object({
 export async function saveStudentProfile(_: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("student");
   const parsed = studentSchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   const { name, ...profile } = parsed.data;
   return attempt(async () => {
     const resume = form.get("resume");
@@ -55,7 +55,7 @@ const companySchema = z.object({
 export async function saveCompanyProfile(_: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("company");
   const parsed = companySchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   const { name, companyName, ...rest } = parsed.data;
   await db.update(users).set({ name }).where(eq(users.id, user.id));
   await db.update(companies).set({ name: companyName, ...rest }).where(eq(companies.userId, user.id));
@@ -66,7 +66,7 @@ export async function saveCompanyProfile(_: ActionState, form: FormData): Promis
 export async function saveName(_: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("instructor", "admin");
   const parsed = name.safeParse(form.get("name"));
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   await db.update(users).set({ name: parsed.data }).where(eq(users.id, user.id));
   revalidatePath("/", "layout");
   return { ok: "Saved." };
@@ -77,9 +77,9 @@ export async function changePassword(_: ActionState, form: FormData): Promise<Ac
   const parsed = z
     .object({ current: z.string().min(1, "Enter your current password."), next: z.string().min(8, "New password must be at least 8 characters.").max(200) })
     .safeParse({ current: form.get("current"), next: form.get("next") });
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   const [row] = await db.select({ hash: users.passwordHash }).from(users).where(eq(users.id, user.id));
-  if (!(await verifyPassword(parsed.data.current, row.hash))) return { error: "Current password is incorrect." };
+  if (!(await verifyPassword(parsed.data.current, row.hash))) return { error: "Current password is incorrect.", field: "current" };
   await db.update(users).set({ passwordHash: await hashPassword(parsed.data.next) }).where(eq(users.id, user.id));
   // Sign out every other device, then issue a fresh session here.
   await db.delete(sessions).where(eq(sessions.userId, user.id));

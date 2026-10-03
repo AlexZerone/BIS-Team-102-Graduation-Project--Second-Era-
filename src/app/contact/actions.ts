@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { db } from "@/db";
 import { contactMessages } from "@/db/schema";
-import { firstError } from "@/lib/validation";
+import { fieldError } from "@/lib/validation";
 import type { ActionState } from "@/server/errors";
 
 const schema = z.object({
@@ -15,7 +15,7 @@ const schema = z.object({
 // ponytail: no rate limit or CAPTCHA; add one if the inbox gets spammed.
 export async function sendMessage(_: ActionState, form: FormData): Promise<ActionState> {
   const parsed = schema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   await db.insert(contactMessages).values(parsed.data);
   return { ok: "Thanks! We received your message." };
 }

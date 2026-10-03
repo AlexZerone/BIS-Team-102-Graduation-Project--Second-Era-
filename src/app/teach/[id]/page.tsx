@@ -78,7 +78,15 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
                   <span>
                     {l.position}. {l.title}
                   </span>
-                  {editable && <ActionForm action={removeItem.bind(null, id, "lesson", l.id)} submit="Remove" variant="danger" className="" />}
+                  {editable && (
+                    <ActionForm
+                      action={removeItem.bind(null, id, "lesson", l.id)}
+                      submit="Remove"
+                      variant="danger"
+                      className=""
+                      confirm={`Remove the lesson "${l.title}"? This can't be undone.`}
+                    />
+                  )}
                 </li>
               ))}
             </ol>
@@ -104,7 +112,15 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
                   <span>
                     {t.title} · {t.maxScore} pts
                   </span>
-                  {editable && <ActionForm action={removeItem.bind(null, id, "assessment", t.id)} submit="Remove" variant="danger" className="" />}
+                  {editable && (
+                    <ActionForm
+                      action={removeItem.bind(null, id, "assessment", t.id)}
+                      submit="Remove"
+                      variant="danger"
+                      className=""
+                      confirm={`Remove the assessment "${t.title}"? This can't be undone.`}
+                    />
+                  )}
                 </li>
               ))}
             </ul>

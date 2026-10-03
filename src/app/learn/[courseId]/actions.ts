@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
-import { firstError, optionalLink } from "@/lib/validation";
+import { fieldError, optionalLink } from "@/lib/validation";
 import { submitAssessment } from "@/server/learning";
 import { attempt, type ActionState } from "@/server/errors";
 
@@ -15,7 +15,7 @@ const schema = z.object({
 export async function submitAction(assessmentId: number, _: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("student");
   const parsed = schema.safeParse({ answer: form.get("answer") ?? "", link: form.get("link") ?? "" });
-  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (!parsed.success) return fieldError(parsed.error);
   return attempt(async () => {
     await submitAssessment(user.id, assessmentId, parsed.data.answer, parsed.data.link);
     revalidatePath(`/learn/[courseId]`, "page");

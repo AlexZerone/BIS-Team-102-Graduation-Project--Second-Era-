@@ -62,7 +62,13 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
                 <td className="p-3">{fmtDate(u.createdAt)}</td>
                 <td className="p-3 text-right">
                   {u.role !== "admin" && u.status === "active" && (
-                    <ActionForm action={setSuspended.bind(null, u.id, true)} submit="Suspend" variant="danger" className="" />
+                    <ActionForm
+                      action={setSuspended.bind(null, u.id, true)}
+                      submit="Suspend"
+                      variant="danger"
+                      className=""
+                      confirm={`Suspend ${u.name}? They will be signed out and can't log in until reactivated.`}
+                    />
                   )}
                   {u.status === "suspended" && <ActionForm action={setSuspended.bind(null, u.id, false)} submit="Reactivate" variant="secondary" className="" />}
                 </td>

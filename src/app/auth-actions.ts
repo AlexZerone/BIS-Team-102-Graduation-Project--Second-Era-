@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { companies, studentProfiles, users } from "@/db/schema";
 import { endSession, startSession } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { fieldError, safeNext } from "@/lib/validation";
 import type { ActionState } from "@/server/errors";
 
 const email = z.string().trim().toLowerCase().email("Enter a valid email.");
@@ -21,7 +22,7 @@ export async function login(_: ActionState, form: FormData): Promise<ActionState
   if (!user || !ok) return { error: "Email or password is incorrect." };
   if (user.status === "suspended") return { error: "This account is suspended. Contact support." };
   await startSession(user.id);
-  redirect(user.role === "admin" ? "/admin" : "/dashboard");
+  redirect(safeNext(form.get("next")) ?? (user.role === "admin" ? "/admin" : "/dashboard"));
 }
 
 const registerSchema = z
@@ -34,15 +35,16 @@ const registerSchema = z
   })
   .refine((d) => d.role !== "company" || (d.companyName?.length ?? 0) >= 2, {
     message: "Enter your company's name.",
+    path: ["companyName"],
   });
 
 export async function register(_: ActionState, form: FormData): Promise<ActionState> {
   const parsed = registerSchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return fieldError(parsed.error);
   const d = parsed.data;
 
   const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, d.email));
-  if (existing) return { error: "An account with this email already exists." };
+  if (existing) return { error: "An account with this email already exists.", field: "email" };
 
   const passwordHash = await hashPassword(d.password);
   const userId = await db.transaction(async (tx) => {
