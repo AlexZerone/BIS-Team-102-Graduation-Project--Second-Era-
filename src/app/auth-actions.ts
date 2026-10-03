@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { companies, studentProfiles, users } from "@/db/schema";
-import { endSession, startSession } from "@/lib/auth";
+import { endSession, homeFor, startSession } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { fieldError, safeNext } from "@/lib/validation";
 import type { ActionState } from "@/server/errors";
@@ -22,7 +22,7 @@ export async function login(_: ActionState, form: FormData): Promise<ActionState
   if (!user || !ok) return { error: "Email or password is incorrect." };
   if (user.status === "suspended") return { error: "This account is suspended. Contact support." };
   await startSession(user.id);
-  redirect(safeNext(form.get("next")) ?? (user.role === "admin" ? "/admin" : "/dashboard"));
+  redirect(safeNext(form.get("next")) ?? homeFor(user.role));
 }
 
 const registerSchema = z

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
+import { getCurrentUser, homeFor } from "@/lib/auth";
 import { companies, courses } from "@/db/schema";
 import { CourseCard } from "@/components/course-card";
 import { btn } from "@/components/ui";
@@ -12,6 +14,10 @@ const STEPS = [
 ];
 
 export default async function Home() {
+  // The landing page is for visitors; signed-in users get their own home.
+  const user = await getCurrentUser();
+  if (user) redirect(homeFor(user.role));
+
   const featured = await db
     .select({ course: courses, partner: companies.name })
     .from(courses)

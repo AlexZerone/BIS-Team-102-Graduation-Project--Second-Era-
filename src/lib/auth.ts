@@ -9,6 +9,9 @@ import { sessions, users } from "@/db/schema";
 export type Role = (typeof users.$inferSelect)["role"];
 export type CurrentUser = Pick<typeof users.$inferSelect, "id" | "email" | "name" | "role" | "status" | "rejectionReason">;
 
+/** Where a signed-in user's "home" is: the logo, `/` and sign-in all lead here. */
+export const homeFor = (role: Role) => (role === "admin" ? "/admin" : "/dashboard");
+
 const COOKIE = "session";
 const TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");

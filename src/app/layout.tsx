@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
-import { getCurrentUser, type Role } from "@/lib/auth";
+import { getCurrentUser, homeFor, type Role } from "@/lib/auth";
 import { btn } from "@/components/ui";
 import { MobileMenu, NavLinks } from "@/components/site-nav";
 import { logout } from "./auth-actions";
@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <header className="border-b border-line bg-surface">
           <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3" aria-label="Main">
-            <Link href="/" className="me-4 text-lg font-semibold tracking-tight">
+            <Link href={user ? homeFor(user.role) : "/"} className="me-4 text-lg font-semibold tracking-tight">
               Second <span className="text-brand">Era</span>
             </Link>
             <div className="hidden items-center gap-1 sm:flex">
