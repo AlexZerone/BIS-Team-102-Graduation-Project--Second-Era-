@@ -15,6 +15,13 @@
       "when": 1791055014062,
       "tag": "0001_paymob_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791062295201,
+      "tag": "0002_application_status_changed",
+      "breakpoints": true
     }
   ]
 }

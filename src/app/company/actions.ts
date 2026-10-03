@@ -75,7 +75,7 @@ export async function setApplicationStatus(jobId: number, applicationId: number,
   if (!parsed.success) return { error: "Choose a status." };
   return attempt(async () => {
     await myJob(user.id, jobId);
-    await db.update(applications).set({ status: parsed.data }).where(and(eq(applications.id, applicationId), eq(applications.jobId, jobId)));
+    await db.update(applications).set({ status: parsed.data, statusChangedAt: new Date() }).where(and(eq(applications.id, applicationId), eq(applications.jobId, jobId)));
     revalidatePath(`/company/jobs/${jobId}`);
     return "Updated.";
   });

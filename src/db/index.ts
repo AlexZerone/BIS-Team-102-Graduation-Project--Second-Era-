@@ -18,6 +18,9 @@ function connect(): DB {
   const dir = process.env.PGLITE_DIR ?? ".data/pglite";
   if (!dir.includes("://")) mkdirSync(dir, { recursive: true });
   const client = new PGlite(dir);
+  client.waitReady.catch(() =>
+    console.error(`Could not open the local database in ${dir}. A process using it was probably killed mid-write. Run "npm run db:reset" to recreate it with demo data.`),
+  );
   // PGlite only writes a consistent data directory when closed; a process killed mid-write
   // can leave it unreadable. Close on Ctrl+C / termination (`npm run db:reset` recovers otherwise).
   const shutdown = () => void client.close().finally(() => process.exit(0));

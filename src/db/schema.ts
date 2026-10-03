@@ -171,6 +171,7 @@ export const applications = pgTable(
     coverNote: text(),
     status: applicationStatus().notNull().default("submitted"),
     createdAt: createdAt(),
+    statusChangedAt: timestamp({ withTimezone: true }), // when the company last changed the status
   },
   (t) => [unique().on(t.jobId, t.studentId)],
 );

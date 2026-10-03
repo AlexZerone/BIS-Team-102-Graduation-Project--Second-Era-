@@ -1,0 +1,1 @@
+ALTER TABLE "applications" ADD COLUMN "status_changed_at" timestamp with time zone;
