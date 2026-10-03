@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------
-# .gitignore — AdsDash
-# What NOT to commit. Secrets, local data, build junk, editor cruft.
+# .gitignore — AdsDash / Graduation Project (BIS)
+# What NOT to commit: Secrets, local data, build junk, editor cruft.
 # ---------------------------------------------------------------
 
-# Python bytecode + build artefacts
+# Python Bytecode & Build Artifacts
 __pycache__/
 *.pyc
 *.pyo
@@ -16,20 +16,17 @@ dist/
 .mypy_cache/
 .ruff_cache/
 
-# Virtual environments
+# Virtual Environments
 venv/
 .venv/
 env/
 .env.d/
 
-# ---- SECRETS — never commit ----
-# Env files (keep only the example).
+# Secrets & Credentials (NEVER commit)
 .env
 .env.local
 .env.*.local
 !.env.example
-
-# Google service-account keys and other credentials.
 credentials.json
 credentials-*.json
 config/credentials.json
@@ -39,7 +36,7 @@ config/credentials-*.json
 *.p12
 *.key
 
-# ---- Local data / DB ----
+# Local Data & Databases
 *.db
 *.sqlite
 *.sqlite3
@@ -47,33 +44,26 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 !data/.gitkeep
-
-# Streamlit
 .streamlit/secrets.toml
 
-# Editors / OS
+# Uploaded Files & User Media
+uploads/
+static/uploads/
+
+# Legacy, Scratch & Internal Test Directories
+_old/
+_Ex/
+_test/
+_report/
+.write_test
+
+# Agent & AI Tool Artifacts
+.agents/
+
+# Editors & OS Files
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
-
-# Sandbox / testing scratch
-.write_test
-/_old
-/venv
-/venv
-
-# Uploaded Files (Do NOT commit)
-# Users can upload resumes, images, course materials, etc.
-# These should be stored in the 'static' directory or similar, 
-# but should never be part of the repository history.
-uploads/
-static/uploads/
-
-.vscode/
-.agents/
-_old/
-_Ex/
-__pycache__/
