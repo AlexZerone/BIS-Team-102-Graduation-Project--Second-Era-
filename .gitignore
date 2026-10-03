@@ -1,0 +1,98 @@
+# ---------------------------------------------------------------
+# .gitignore — Second Era / Graduation Project (BIS)
+# What NOT to commit: Secrets, local data, build junk, editor cruft.
+# ---------------------------------------------------------------
+
+# Python Bytecode & Build Artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env.d/
+
+# Secrets & Credentials (NEVER commit)
+.env
+.env.local
+.env.*.local
+!.env.example
+credentials.json
+credentials-*.json
+config/credentials.json
+config/credentials-*.json
+!config/credentials.example.json
+*.pem
+*.p12
+*.key
+
+# Local Data & Databases
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+!data/.gitkeep
+.streamlit/secrets.toml
+
+# Uploaded Files & User Media
+uploads/
+static/uploads/
+
+# Legacy, Scratch & Internal Test Directories
+_old/
+_Ex/
+_test/
+_report/
+.write_test
+
+# Agent & AI Tool Artifacts (per-developer configs, some with absolute local paths)
+.agents/
+.claude/
+.codebuddy/
+.gemini/
+.kiro/
+.qoder/
+.github/instructions/
+.mcp.json
+opencode.jsonc
+.cursorrules
+.windsurfrules
+AGENTS.md
+CLAUDE.md
+CODEBUDDY.md
+GEMINI.md
+QODER.md
+
+# Editors & OS Files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Added by code-review-graph
+.code-review-graph/
+
+# Next.js / Node
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+
+# Local embedded database and uploads
+.data/
