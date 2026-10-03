@@ -11,7 +11,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.mts",
-    "db:seed": "tsx --env-file-if-exists=.env scripts/seed.mts"
+    "db:seed": "tsx --env-file-if-exists=.env scripts/seed.mts",
+    "db:reset": "node -e \"require('fs').rmSync('.data/pglite',{recursive:true,force:true})\" && npm run db:seed"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

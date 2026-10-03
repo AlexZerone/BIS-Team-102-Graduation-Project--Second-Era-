@@ -23,7 +23,7 @@ export const level = pgEnum("level", ["beginner", "intermediate", "advanced"]);
 export const enrollmentStatus = pgEnum("enrollment_status", ["active", "completed"]);
 export const jobType = pgEnum("job_type", ["internship", "full_time", "part_time"]);
 export const applicationStatus = pgEnum("application_status", ["submitted", "shortlisted", "rejected", "hired"]);
-export const paymentStatus = pgEnum("payment_status", ["paid", "failed"]);
+export const paymentStatus = pgEnum("payment_status", ["pending", "paid", "failed"]);
 export const messageStatus = pgEnum("message_status", ["open", "resolved"]);
 
 export const users = pgTable("users", {
@@ -175,15 +175,22 @@ export const applications = pgTable(
   (t) => [unique().on(t.jobId, t.studentId)],
 );
 
-export const payments = pgTable("payments", {
-  id: id(),
-  studentId: integer().notNull().references(() => users.id, { onDelete: "cascade" }),
-  plan: plan().notNull(),
-  amountEgp: integer().notNull(),
-  provider: text().notNull(),
-  status: paymentStatus().notNull(),
-  createdAt: createdAt(),
-});
+export const payments = pgTable(
+  "payments",
+  {
+    id: id(),
+    studentId: integer().notNull().references(() => users.id, { onDelete: "cascade" }),
+    plan: plan().notNull(),
+    amountEgp: integer().notNull(),
+    provider: text().notNull(), // "paymob" or "simulated"
+    // The provider's order id (Paymob intention_order_id), used to match its callbacks.
+    providerRef: text(),
+    status: paymentStatus().notNull(),
+    createdAt: createdAt(),
+    paidAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [unique().on(t.provider, t.providerRef)],
+);
 
 export const contactMessages = pgTable("contact_messages", {
   id: id(),

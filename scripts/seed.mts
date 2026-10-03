@@ -1,7 +1,7 @@
 // Demo data for local development. `npm run db:seed` (add `-- --reset` to wipe first).
 // Every demo account uses DEMO_PASSWORD. Never run against production.
 import { and, eq, sql } from "drizzle-orm";
-import { db } from "@/db";
+import { closeDb, db } from "@/db";
 import { migrate } from "@/db/migrate";
 import { assessments, companies, courses, jobRequirements, jobs, lessons, studentProfiles, submissions, users } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
@@ -16,6 +16,7 @@ if (process.argv.includes("--reset")) {
   await db.execute(sql`TRUNCATE users, companies, courses, contact_messages, audit_log RESTART IDENTITY CASCADE`);
 } else if ((await db.select({ id: users.id }).from(users).limit(1)).length) {
   console.log("Database already has data; run with --reset to wipe it.");
+  await closeDb();
   process.exit(0);
 }
 
@@ -103,5 +104,5 @@ for (const [student, scores] of [[students[0], [45, 47]], [students[1], [38, 40]
 await enroll(students[2].id, sqlCourse.id);
 await submitAssessment(students[2].id, sqlCourse.tasks[0], "My monthly revenue query and results...", null);
 
+await closeDb();
 console.log(`Seeded. Demo accounts use password: ${DEMO_PASSWORD}`);
-process.exit(0);

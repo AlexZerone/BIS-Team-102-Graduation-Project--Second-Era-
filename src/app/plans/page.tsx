@@ -2,8 +2,9 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { PLANS, hasPlan, type Plan } from "@/lib/plans";
 import { studentPlan } from "@/server/learning";
+import { paymobConfig } from "@/server/paymob";
 import { ActionForm } from "@/components/action-form";
-import { Badge, Card, PageHeader, btn } from "@/components/ui";
+import { Badge, Card, Field, PageHeader, btn } from "@/components/ui";
 import { checkoutAction } from "./actions";
 
 export const metadata = { title: "Plans" };
@@ -40,7 +41,9 @@ export default async function PlansPage() {
                     Sign up
                   </Link>
                 ) : isStudent && current && key !== "free" && !hasPlan(current, key) ? (
-                  <ActionForm action={checkoutAction.bind(null, key)} submit={`Upgrade to ${p.name}`} />
+                  <ActionForm action={checkoutAction.bind(null, key)} submit={`Upgrade to ${p.name}`} className="space-y-3">
+                    <Field label="Mobile number" name="phone" type="tel" autoComplete="tel" placeholder="01012345678" required />
+                  </ActionForm>
                 ) : null}
               </div>
             </Card>
@@ -48,7 +51,9 @@ export default async function PlansPage() {
         })}
       </div>
       <p className="mt-6 text-sm text-muted">
-        Payments are simulated in this version; no card details are collected.
+        {paymobConfig()
+          ? "Payments are processed securely by Paymob (cards and mobile wallets). Second Era never sees your card details."
+          : "Payments are simulated in this environment; no money is charged."}
       </p>
     </>
   );

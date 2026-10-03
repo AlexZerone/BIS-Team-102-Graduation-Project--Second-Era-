@@ -27,7 +27,7 @@ npm run db:seed     # applies migrations and loads demo data
 npm run dev         # http://localhost:3000
 ```
 
-Demo accounts and their shared password are defined at the top of [`scripts/seed.mts`](scripts/seed.mts) (`admin@secondera.test`, `mona@secondera.test`, `hr@nilesoft.test`, `sara@student.test`, …). To wipe and reseed, stop the dev server and run `npm run db:seed -- --reset`. PGlite allows one process at a time.
+Demo accounts and their shared password are defined at the top of [`scripts/seed.mts`](scripts/seed.mts) (`admin@secondera.test`, `mona@secondera.test`, `hr@nilesoft.test`, `sara@student.test`, …). PGlite allows one process at a time, so stop the dev server before running database scripts. `npm run db:reset` deletes the local database and reseeds it; use it if the database won't open after the dev server was killed abruptly.
 
 ## Scripts
 
@@ -40,6 +40,7 @@ Demo accounts and their shared password are defined at the top of [`scripts/seed
 | `npm run db:generate` | Create a migration after editing `src/db/schema.ts` |
 | `npm run db:migrate` | Apply migrations |
 | `npm run db:seed` | Migrate and load demo data |
+| `npm run db:reset` | Delete the local PGlite database and reseed |
 
 ## Configuration
 
@@ -57,6 +58,16 @@ drizzle/         generated SQL migrations
 docs/            original idea and the 2025 project plan
 ```
 
+## Payments (Paymob)
+
+Plan upgrades go through [Paymob](https://developers.paymob.com) Unified Checkout (cards and mobile wallets) when the `PAYMOB_*` and `APP_URL` variables in [`.env.example`](.env.example) are set. Without them, upgrades are simulated and succeed at once, which is what local development and the tests use.
+
+1. Upgrading creates a `pending` payment and a Paymob intention, then sends the student to Paymob's checkout.
+2. Paymob calls `POST /api/payments/paymob` (the transaction processed callback). The app checks the HMAC-SHA512 signature and the amount, then marks the payment `paid` and activates the plan for a year. Repeated callbacks are ignored, and a declined card leaves the payment pending so the student can retry.
+3. The student returns to `/plans/return/<id>`. Paymob signs that redirect too, so it can settle the payment if the callback hasn't arrived yet.
+
+Paymob must be able to reach `APP_URL`. To test from your machine, expose port 3000 with a tunnel (for example `cloudflared tunnel --url http://localhost:3000`) and set `APP_URL` to the tunnel URL. Use your Paymob **test** keys and integration IDs with Paymob's test cards.
+
 ## Previous version
 
 The original Flask/MySQL implementation is preserved in git history under the `flask-legacy` tag:
@@ -67,7 +78,8 @@ git checkout flask-legacy
 
 ## Known limitations
 
-- **Payments are simulated.** Upgrading always succeeds and records a `simulated` payment. `src/server/payments.ts` marks where a Paymob/Fawry checkout and webhook would go.
+- **Paymob is untested against the live sandbox in this repo's CI.** The tests mock Paymob's API with its documented request and callback formats; run one sandbox payment with your test keys before going live.
+- Paid plans run for one year from the payment date; there are no refunds, renewals, or installments in the app.
 - **Resumes go to local disk** (`STORAGE_DIR`). Serverless hosts need object storage (S3/R2) behind `src/server/storage.ts`.
 - No email sending (verification, password reset, notifications) and no login rate limiting yet.
 - Certificates are immutable: re-grading after a certificate is issued doesn't revoke it.

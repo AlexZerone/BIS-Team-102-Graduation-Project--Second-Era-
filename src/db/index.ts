@@ -17,16 +17,30 @@ function connect(): DB {
   if (url) return drizzlePg({ client: new Pool({ connectionString: url }), ...config });
   const dir = process.env.PGLITE_DIR ?? ".data/pglite";
   if (!dir.includes("://")) mkdirSync(dir, { recursive: true });
-  return drizzlePglite({ client: new PGlite(dir), ...config });
+  const client = new PGlite(dir);
+  // PGlite only writes a consistent data directory when closed; a process killed mid-write
+  // can leave it unreadable. Close on Ctrl+C / termination (`npm run db:reset` recovers otherwise).
+  const shutdown = () => void client.close().finally(() => process.exit(0));
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+  return drizzlePglite({ client, ...config });
 }
 
 // One connection per process, opened on first use (not at import, so parallel build
 // workers never open the same PGlite directory) and kept across dev hot reloads.
-const g = globalThis as { __db?: DB };
+const g = globalThis as { __db?: DB & { $client: PGlite | Pool } };
 export const db = new Proxy({} as DB, {
   get(_, prop) {
-    const real = (g.__db ??= connect());
+    const real = (g.__db ??= connect() as NonNullable<typeof g.__db>);
     const value = Reflect.get(real, prop);
     return typeof value === "function" ? value.bind(real) : value;
   },
 });
+
+/** Closes the connection so scripts exit with the database flushed to disk. */
+export async function closeDb() {
+  const client = g.__db?.$client;
+  g.__db = undefined;
+  if (client instanceof PGlite) await client.close();
+  else await client?.end();
+}
