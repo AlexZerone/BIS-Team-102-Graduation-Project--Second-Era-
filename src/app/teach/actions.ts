@@ -56,7 +56,7 @@ export async function updateCourse(courseId: number, _: ActionState, form: FormD
     const parsed = courseSchema.safeParse(input);
     if (!parsed.success) {
       const { error, field } = fieldError(parsed.error);
-      throw new DomainError(error, field);
+      throw new DomainError(error, { field });
     }
     await checkPartner(parsed.data.partnerCompanyId);
     await db.update(courses).set(parsed.data).where(eq(courses.id, courseId));
@@ -151,6 +151,6 @@ export async function gradeAction(courseId: number, submissionId: number, _: Act
   return attempt(async () => {
     const cert = await gradeSubmission(user.id, submissionId, parsed.data.score, parsed.data.feedback || null);
     revalidatePath(`/teach/${courseId}/grade`);
-    return cert ? `Graded. The student passed with ${cert.score}% and received a certificate.` : "Graded.";
+    return cert ? { ok: "Graded. The student passed with {score}% and received a certificate.", params: { score: cert.score } } : "Graded.";
   });
 }

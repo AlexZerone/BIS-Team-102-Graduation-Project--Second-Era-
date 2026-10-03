@@ -4,9 +4,11 @@ import { db } from "@/db";
 import { assessments, courses, enrollments, submissions } from "@/db/schema";
 import { Badge, Card, Empty, btn } from "@/components/ui";
 import { STATUS_TONE } from "../teach/status";
+import { getT } from "@/i18n/server";
 
 export async function InstructorDashboard({ userId }: { userId: number }) {
-  const [mine, toGrade, students] = await Promise.all([
+  const [t, mine, toGrade, students] = await Promise.all([
+    getT(),
     db.select().from(courses).where(eq(courses.instructorId, userId)).orderBy(desc(courses.createdAt)),
     db
       .select({ courseId: courses.id, n: count() })
@@ -27,9 +29,9 @@ export async function InstructorDashboard({ userId }: { userId: number }) {
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold">My courses</h2>
+        <h2 className="font-semibold">{t("My courses")}</h2>
         <Link href="/teach/new" className={btn.primary}>
-          New course
+          {t("New course")}
         </Link>
       </div>
       {mine.length ? (
@@ -37,28 +39,28 @@ export async function InstructorDashboard({ userId }: { userId: number }) {
           <table className="w-full min-w-[480px] text-start text-sm">
             <thead className="text-muted">
               <tr>
-                <th className="py-2 font-medium">Course</th>
-                <th className="font-medium">Status</th>
-                <th className="font-medium">Students</th>
-                <th className="font-medium">To grade</th>
+                <th className="py-2 font-medium">{t("Course")}</th>
+                <th className="font-medium">{t("Status")}</th>
+                <th className="font-medium">{t("Students")}</th>
+                <th className="font-medium">{t("To grade")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {mine.map((c) => (
                 <tr key={c.id}>
                   <td className="py-2">
-                    <Link href={`/teach/${c.id}`} className="hover:text-brand">
+                    <Link href={`/teach/${c.id}`} className="hover:text-brand" dir="auto">
                       {c.title}
                     </Link>
                   </td>
                   <td>
-                    <Badge tone={STATUS_TONE[c.status]}>{c.status}</Badge>
+                    <Badge tone={STATUS_TONE[c.status]}>{t.label(c.status)}</Badge>
                   </td>
                   <td>{n(students, c.id)}</td>
                   <td>
                     {n(toGrade, c.id) ? (
                       <Link href={`/teach/${c.id}/grade`} className="font-medium text-brand hover:underline">
-                        {n(toGrade, c.id)} waiting
+                        {t("{n} waiting", { n: n(toGrade, c.id) })}
                       </Link>
                     ) : (
                       "—"
@@ -71,7 +73,7 @@ export async function InstructorDashboard({ userId }: { userId: number }) {
         </div>
       ) : (
         <div className="mt-4">
-          <Empty>Create your first course. It goes live after an admin reviews it.</Empty>
+          <Empty>{t("Create your first course. It goes live after an admin reviews it.")}</Empty>
         </div>
       )}
     </Card>

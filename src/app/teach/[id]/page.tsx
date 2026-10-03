@@ -6,16 +6,18 @@ import { assessments, lessons } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { ActionForm } from "@/components/action-form";
 import { Badge, Card, Field, PageHeader } from "@/components/ui";
+import { ownCourseWithLocks } from "@/server/courses";
+import { DomainError } from "@/server/errors";
+import { getT } from "@/i18n/server";
+import { titled } from "@/i18n/metadata";
 import { CourseFields } from "../course-fields";
 import { STATUS_TONE } from "../status";
 import { addAssessment, addLesson, removeItem, submitForReview, updateCourse, updateLesson } from "../actions";
-import { ownCourseWithLocks } from "@/server/courses";
-import { DomainError } from "@/server/errors";
 
-export const metadata = { title: "Edit course" };
+export const generateMetadata = titled("Edit course");
 
 export default async function EditCoursePage({ params }: PageProps<"/teach/[id]">) {
-  const user = await requireRole("instructor");
+  const [user, t] = await Promise.all([requireRole("instructor"), getT()]);
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
   const owned = await ownCourseWithLocks(user.id, id).catch((e) => {
@@ -35,37 +37,37 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
         title={course.title}
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
-            <Badge tone={STATUS_TONE[course.status]}>{course.status}</Badge>
+            <Badge tone={STATUS_TONE[course.status]}>{t.label(course.status)}</Badge>
             <Link href={`/courses/${id}`} className="text-brand hover:underline">
-              Preview
+              {t("Preview")}
             </Link>
             <Link href={`/teach/${id}/grade`} className="text-brand hover:underline">
-              Grade submissions
+              {t("Grade submissions")}
             </Link>
           </span>
         }
-        action={canSubmit && <ActionForm action={submitForReview.bind(null, id)} submit="Submit for review" className="" />}
+        action={canSubmit && <ActionForm action={submitForReview.bind(null, id)} submit={t("Submit for review")} className="" />}
       />
 
       {course.status === "rejected" && course.rejectionReason && (
         <Card className="mb-6 border-danger">
           <p className="text-sm">
-            <strong>Changes requested:</strong> {course.rejectionReason}
+            <strong>{t("Changes requested:")}</strong> <bdi>{course.rejectionReason}</bdi>
           </p>
         </Card>
       )}
       {locks.reviewing ? (
         <Card className="mb-6">
-          <p className="text-sm text-muted">This course is waiting for admin review. You can edit it again once it&apos;s decided.</p>
+          <p className="text-sm text-muted">{t("This course is waiting for admin review. You can edit it again once it's decided.")}</p>
         </Card>
       ) : (
         course.status === "published" && (
           <Card className="mb-6">
             <p className="text-sm text-muted">
-              Published: changes go live immediately.{" "}
+              {t("Published: changes go live immediately.")}{" "}
               {enrolled > 0
-                ? `${enrolled} student${enrolled === 1 ? " is" : "s are"} enrolled, so assessments and the pass mark are locked; lessons and details stay editable.`
-                : "No one has enrolled yet, so everything is still editable."}
+                ? t("Students enrolled: {n}. Assessments and the pass mark are locked; lessons and details stay editable.", { n: enrolled })
+                : t("No one has enrolled yet, so everything is still editable.")}
             </p>
           </Card>
         )
@@ -73,44 +75,44 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-semibold">Details</h2>
+          <h2 className="mb-4 font-semibold">{t("Details")}</h2>
           {!locks.details ? (
-            <ActionForm action={updateCourse.bind(null, id)} submit="Save details">
+            <ActionForm action={updateCourse.bind(null, id)} submit={t("Save details")}>
               <CourseFields course={course} locks={locks} />
             </ActionForm>
           ) : (
-            <p className="prose-text text-sm">{course.description}</p>
+            <p className="prose-text text-sm" dir="auto">
+              {course.description}
+            </p>
           )}
         </Card>
 
         <div className="space-y-6">
           <Card>
-            <h2 className="font-semibold">Lessons</h2>
+            <h2 className="font-semibold">{t("Lessons")}</h2>
             <ol className="mt-3 space-y-2 text-sm">
               {lessonList.map((l) => (
                 <li key={l.id}>
                   <div className="flex items-center justify-between gap-2">
                     <span>
-                      {l.position}. {l.title}
+                      {l.position}. <bdi>{l.title}</bdi>
                     </span>
                     {!locks.lessons && (
                       <ActionForm
                         action={removeItem.bind(null, id, "lesson", l.id)}
-                        submit="Remove"
+                        submit={t("Remove")}
                         variant="danger"
                         className=""
-                        confirm={`Remove the lesson "${l.title}"? This can't be undone.`}
+                        confirm={t("Remove the lesson “{title}”? This can't be undone.", { title: l.title })}
                       />
                     )}
                   </div>
                   {!locks.lessons && (
                     <details className="mt-1">
-                      <summary className="cursor-pointer text-sm text-brand">Edit lesson</summary>
+                      <summary className="cursor-pointer text-sm text-brand">{t("Edit lesson")}</summary>
                       <div className="mt-3">
-                        <ActionForm action={updateLesson.bind(null, id, l.id)} submit="Save lesson">
-                          <Field label="Title" name="title" defaultValue={l.title} required />
-                          <Field as="textarea" label="Content" name="body" defaultValue={l.body} required rows={6} />
-                          <Field label="Video link (optional)" name="videoUrl" type="url" defaultValue={l.videoUrl ?? ""} />
+                        <ActionForm action={updateLesson.bind(null, id, l.id)} submit={t("Save lesson")}>
+                          <LessonFields t={t} lesson={l} />
                         </ActionForm>
                       </div>
                     </details>
@@ -120,12 +122,10 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
             </ol>
             {!locks.lessons && (
               <details className="mt-4">
-                <summary className="cursor-pointer text-sm font-medium text-brand">Add a lesson</summary>
+                <summary className="cursor-pointer text-sm font-medium text-brand">{t("Add a lesson")}</summary>
                 <div className="mt-3">
-                  <ActionForm action={addLesson.bind(null, id)} submit="Add lesson" resetOnSuccess>
-                    <Field label="Title" name="title" required />
-                    <Field as="textarea" label="Content" name="body" required rows={6} />
-                    <Field label="Video link (optional)" name="videoUrl" type="url" />
+                  <ActionForm action={addLesson.bind(null, id)} submit={t("Add lesson")} resetOnSuccess>
+                    <LessonFields t={t} />
                   </ActionForm>
                 </div>
               </details>
@@ -133,36 +133,43 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
           </Card>
 
           <Card>
-            <h2 className="font-semibold">Practical assessments</h2>
+            <h2 className="font-semibold">{t("Practical assessments")}</h2>
             <ul className="mt-3 space-y-2 text-sm">
-              {tasks.map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-2">
+              {tasks.map((task) => (
+                <li key={task.id} className="flex items-center justify-between gap-2">
                   <span>
-                    {t.title} · {t.maxScore} pts
+                    <bdi>{task.title}</bdi> · {t("{n} pts", { n: task.maxScore })}
                   </span>
                   {!locks.assessments && (
                     <ActionForm
-                      action={removeItem.bind(null, id, "assessment", t.id)}
-                      submit="Remove"
+                      action={removeItem.bind(null, id, "assessment", task.id)}
+                      submit={t("Remove")}
                       variant="danger"
                       className=""
-                      confirm={`Remove the assessment "${t.title}"? This can't be undone.`}
+                      confirm={t("Remove the assessment “{title}”? This can't be undone.", { title: task.title })}
                     />
                   )}
                 </li>
               ))}
             </ul>
             {locks.assessments && !locks.reviewing && (
-              <p className="mt-3 text-xs text-muted">Locked because students are enrolled and graded against these.</p>
+              <p className="mt-3 text-xs text-muted">{t("Locked because students are enrolled and graded against these.")}</p>
             )}
             {!locks.assessments && (
               <details className="mt-4">
-                <summary className="cursor-pointer text-sm font-medium text-brand">Add an assessment</summary>
+                <summary className="cursor-pointer text-sm font-medium text-brand">{t("Add an assessment")}</summary>
                 <div className="mt-3">
-                  <ActionForm action={addAssessment.bind(null, id)} submit="Add assessment" resetOnSuccess>
-                    <Field label="Title" name="title" required />
-                    <Field as="textarea" label="Instructions" name="instructions" required hint="What the student must deliver, and how you'll grade it." />
-                    <Field label="Max score" name="maxScore" type="number" min={1} max={1000} defaultValue={100} required />
+                  <ActionForm action={addAssessment.bind(null, id)} submit={t("Add assessment")} resetOnSuccess>
+                    <Field label={t("Title")} name="title" required dir="auto" />
+                    <Field
+                      as="textarea"
+                      label={t("Instructions")}
+                      name="instructions"
+                      required
+                      dir="auto"
+                      hint={t("What the student must deliver, and how you'll grade it.")}
+                    />
+                    <Field label={t("Max score")} name="maxScore" type="number" min={1} max={1000} defaultValue={100} required />
                   </ActionForm>
                 </div>
               </details>
@@ -170,6 +177,16 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
           </Card>
         </div>
       </div>
+    </>
+  );
+}
+
+function LessonFields({ t, lesson }: { t: Awaited<ReturnType<typeof getT>>; lesson?: typeof lessons.$inferSelect }) {
+  return (
+    <>
+      <Field label={t("Title")} name="title" defaultValue={lesson?.title} required dir="auto" />
+      <Field as="textarea" label={t("Content")} name="body" defaultValue={lesson?.body} required rows={6} dir="auto" />
+      <Field label={t("Video link (optional)")} name="videoUrl" type="url" defaultValue={lesson?.videoUrl ?? ""} dir="ltr" />
     </>
   );
 }

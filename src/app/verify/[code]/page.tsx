@@ -4,9 +4,10 @@ import { eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { certificates, companies, courses, users } from "@/db/schema";
-import { fmtDate } from "@/components/ui";
+import { getT } from "@/i18n/server";
+import { titled } from "@/i18n/metadata";
 
-export const metadata = { title: "Certificate verification" };
+export const generateMetadata = titled("Certificate verification");
 
 const instructors = alias(users, "instructors");
 
@@ -23,33 +24,40 @@ export default async function VerifyPage({ params }: PageProps<"/verify/[code]">
     .leftJoin(companies, eq(companies.id, courses.partnerCompanyId))
     .where(eq(certificates.code, code));
   if (!c) notFound();
+  const t = await getT();
 
   return (
     <div className="mx-auto max-w-2xl rounded-xl border-2 border-brand bg-surface p-8 text-center md:p-12">
-      <p className="text-sm font-medium uppercase tracking-widest text-brand">Verified certificate</p>
-      <h1 className="mt-6 text-3xl font-semibold">{c.student}</h1>
-      <p className="mt-2 text-muted">passed the practical assessments for</p>
+      <p className="text-sm font-medium uppercase tracking-widest text-brand">{t("Verified certificate")}</p>
+      <h1 className="mt-6 text-3xl font-semibold" dir="auto">
+        {c.student}
+      </h1>
+      <p className="mt-2 text-muted">{t("passed the practical assessments for")}</p>
       <p className="mt-2 text-xl font-semibold">
-        <Link href={`/courses/${c.courseId}`} className="hover:text-brand">
+        <Link href={`/courses/${c.courseId}`} className="hover:text-brand" dir="auto">
           {c.course}
         </Link>
       </p>
-      <p className="mt-6 text-4xl font-semibold text-brand">{c.cert.score}%</p>
+      <p className="mt-6 text-4xl font-semibold text-brand" dir="ltr">
+        {c.cert.score}%
+      </p>
       <dl className="mt-8 grid gap-4 text-sm sm:grid-cols-3">
         <div>
-          <dt className="text-muted">Issued</dt>
-          <dd>{fmtDate(c.cert.issuedAt)}</dd>
+          <dt className="text-muted">{t("Issued")}</dt>
+          <dd>{t.date(c.cert.issuedAt)}</dd>
         </div>
         <div>
-          <dt className="text-muted">Instructor</dt>
-          <dd>{c.instructor}</dd>
+          <dt className="text-muted">{t("Instructor")}</dt>
+          <dd dir="auto">{c.instructor}</dd>
         </div>
         <div>
-          <dt className="text-muted">Industry partner</dt>
-          <dd>{c.partner ?? "—"}</dd>
+          <dt className="text-muted">{t("Industry partner")}</dt>
+          <dd dir="auto">{c.partner ?? "—"}</dd>
         </div>
       </dl>
-      <p className="mt-8 font-mono text-xs text-muted">Code {c.cert.code}</p>
+      <p className="mt-8 font-mono text-xs text-muted">
+        {t("Code")} <bdi>{c.cert.code}</bdi>
+      </p>
     </div>
   );
 }

@@ -81,4 +81,3 @@ export function Field({ label, hint, ...props }: FieldProps) {
 }
 
 
-export const fmtDate = (d: Date | null) => (d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");

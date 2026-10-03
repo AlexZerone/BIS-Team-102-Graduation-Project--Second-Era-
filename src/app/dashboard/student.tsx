@@ -6,10 +6,13 @@ import { PLANS } from "@/lib/plans";
 import { studentPlan } from "@/server/learning";
 import { listJobs } from "@/server/queries";
 import { activeCourseProgress, pickContinue, recentUpdates, type Update } from "@/server/progress";
-import { Badge, Card, Empty, btn, fmtDate } from "@/components/ui";
+import { Badge, Card, Empty, btn } from "@/components/ui";
+import { getT } from "@/i18n/server";
+import { m, type T } from "@/i18n/translate";
 
 export async function StudentDashboard({ userId }: { userId: number }) {
-  const [progress, updates, plan, myCourses, certs, apps, openJobs] = await Promise.all([
+  const [t, progress, updates, plan, myCourses, certs, apps, openJobs] = await Promise.all([
+    getT(),
     activeCourseProgress(userId),
     recentUpdates(userId),
     studentPlan(userId),
@@ -43,17 +46,17 @@ export async function StudentDashboard({ userId }: { userId: number }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <ContinueCard next={next} qualifiedJob={qualified[0]?.job} hasCourses={myCourses.length > 0} />
+        <ContinueCard t={t} next={next} qualifiedJob={qualified[0]?.job} hasCourses={myCourses.length > 0} />
         <Card>
-          <h2 className="font-semibold">Recent updates</h2>
+          <h2 className="font-semibold">{t("Recent updates")}</h2>
           {updates.length ? (
             <ul className="mt-3 space-y-3">
               {updates.map((u, i) => (
-                <UpdateItem key={i} u={u} />
+                <UpdateItem key={i} u={u} t={t} />
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-muted">Grades, certificates and replies from companies will show up here.</p>
+            <p className="mt-3 text-sm text-muted">{t("Grades, certificates and replies from companies will show up here.")}</p>
           )}
         </Card>
       </div>
@@ -61,11 +64,11 @@ export async function StudentDashboard({ userId }: { userId: number }) {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold">My courses</h2>
+            <h2 className="font-semibold">{t("My courses")}</h2>
             <span className="text-sm text-muted">
-              Plan: <Badge tone="brand">{PLANS[plan].name}</Badge>{" "}
+              {t("Plan:")} <Badge tone="brand">{t(PLANS[plan].name)}</Badge>{" "}
               <Link href="/plans" className="text-brand hover:underline">
-                Change
+                {t("Change")}
               </Link>
             </span>
           </div>
@@ -73,77 +76,88 @@ export async function StudentDashboard({ userId }: { userId: number }) {
             <ul className="mt-3 divide-y divide-line">
               {myCourses.map((c) => (
                 <li key={c.id} className="flex items-center justify-between py-2 text-sm">
-                  <Link href={`/learn/${c.id}`} className="hover:text-brand">
+                  <Link href={`/learn/${c.id}`} className="hover:text-brand" dir="auto">
                     {c.title}
                   </Link>
-                  <Badge tone={c.status === "completed" ? "brand" : "neutral"}>{c.status}</Badge>
+                  <Badge tone={c.status === "completed" ? "brand" : "neutral"}>{t.label(c.status)}</Badge>
                 </li>
               ))}
             </ul>
           ) : (
             <div className="mt-3">
               <Empty>
-                No courses yet. <Link href="/courses" className="text-brand hover:underline">Browse the catalog</Link>.
+                {t("No courses yet.")}{" "}
+                <Link href="/courses" className="text-brand hover:underline">
+                  {t("Browse the catalog")}
+                </Link>
               </Empty>
             </div>
           )}
         </Card>
 
         <Card>
-          <h2 className="font-semibold">Verified certificates</h2>
+          <h2 className="font-semibold">{t("Verified certificates")}</h2>
           {certs.length ? (
             <ul className="mt-3 divide-y divide-line">
               {certs.map((c) => (
                 <li key={c.code} className="flex items-center justify-between py-2 text-sm">
-                  <Link href={`/verify/${c.code}`} className="hover:text-brand">
+                  <Link href={`/verify/${c.code}`} className="hover:text-brand" dir="auto">
                     {c.title}
                   </Link>
                   <span className="text-muted">
-                    {c.score}% · {fmtDate(c.issuedAt)}
+                    <bdi>{c.score}%</bdi> · {t.date(c.issuedAt)}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-muted">Pass a course&apos;s assessments to earn your first certificate.</p>
+            <p className="mt-3 text-sm text-muted">{t("Pass a course's assessments to earn your first certificate.")}</p>
           )}
         </Card>
 
         <Card>
-          <h2 className="font-semibold">Jobs you qualify for</h2>
+          <h2 className="font-semibold">{t("Jobs you qualify for")}</h2>
           {qualified.length ? (
             <ul className="mt-3 space-y-2 text-sm">
               {qualified.map(({ job, company }) => (
                 <li key={job.id}>
-                  <Link href={`/jobs/${job.id}`} className="text-brand hover:underline">
+                  <Link href={`/jobs/${job.id}`} className="text-brand hover:underline" dir="auto">
                     {job.title}
                   </Link>{" "}
-                  <span className="text-muted">· {company}</span>
+                  <span className="text-muted">
+                    · <bdi>{company}</bdi>
+                  </span>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="mt-3 text-sm text-muted">
-              Jobs that require your certificates will appear here. <Link href="/jobs" className="text-brand hover:underline">See all jobs</Link>.
+              {t("Jobs that require your certificates will appear here.")}{" "}
+              <Link href="/jobs" className="text-brand hover:underline">
+                {t("See all jobs")}
+              </Link>
             </p>
           )}
         </Card>
 
         <Card>
-          <h2 className="font-semibold">My applications</h2>
+          <h2 className="font-semibold">{t("My applications")}</h2>
           {apps.length ? (
             <ul className="mt-3 divide-y divide-line">
               {apps.map((a) => (
                 <li key={a.id} className="flex items-center justify-between py-2 text-sm">
                   <Link href={`/jobs/${a.jobId}`} className="hover:text-brand">
-                    {a.title} <span className="text-muted">· {a.company}</span>
+                    <bdi>{a.title}</bdi>{" "}
+                    <span className="text-muted">
+                      · <bdi>{a.company}</bdi>
+                    </span>
                   </Link>
-                  <Badge tone={a.status === "rejected" ? "danger" : a.status === "submitted" ? "neutral" : "brand"}>{a.status}</Badge>
+                  <Badge tone={a.status === "rejected" ? "danger" : a.status === "submitted" ? "neutral" : "brand"}>{t.label(a.status)}</Badge>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-muted">You haven&apos;t applied to any jobs yet.</p>
+            <p className="mt-3 text-sm text-muted">{t("You haven't applied to any jobs yet.")}</p>
           )}
         </Card>
       </div>
@@ -153,10 +167,12 @@ export async function StudentDashboard({ userId }: { userId: number }) {
 
 /** The one thing to do next, shown first so the dashboard works as the student's home. */
 function ContinueCard({
+  t,
   next,
   qualifiedJob,
   hasCourses,
 }: {
+  t: T;
   next: ReturnType<typeof pickContinue>;
   qualifiedJob?: { id: number; title: string };
   hasCourses: boolean;
@@ -164,63 +180,60 @@ function ContinueCard({
   if (next)
     return (
       <Card className="border-brand">
-        <p className="text-sm font-medium text-brand">Continue where you left off</p>
+        <p className="text-sm font-medium text-brand">{t("Continue where you left off")}</p>
         <h2 className="mt-1 text-xl font-semibold" dir="auto">
           {next.title}
         </h2>
-        <progress value={next.graded} max={next.total} aria-label="Assessments graded" className="mt-3 h-2 w-full accent-brand" />
+        <progress value={next.graded} max={next.total} aria-label={t("Assessments graded")} className="mt-3 h-2 w-full accent-brand" />
         <p className="mt-2 text-sm">
-          {next.nextTask ? (
-            <>
-              Next: submit <strong dir="auto">{next.nextTask}</strong>
-            </>
-          ) : (
-            "All your work is submitted. Your instructor will grade it soon."
-          )}
-          <span className="text-muted">
-            {" "}
-            · {next.graded} of {next.total} graded
-          </span>
+          {next.nextTask ? t("Next: submit {tasks}.", { tasks: next.nextTask }) : t("All your work is submitted. Your instructor will grade it soon.")}
+          <span className="text-muted"> · {t("{graded} of {total} graded", { graded: next.graded, total: next.total })}</span>
         </p>
         <Link href={`/learn/${next.courseId}`} className={`${btn.primary} mt-4`}>
-          {next.nextTask ? "Continue course" : "View course"}
+          {next.nextTask ? t("Continue course") : t("View course")}
         </Link>
       </Card>
     );
   if (qualifiedJob)
     return (
       <Card className="border-brand">
-        <p className="text-sm font-medium text-brand">You qualify for a job</p>
+        <p className="text-sm font-medium text-brand">{t("You qualify for a job")}</p>
         <h2 className="mt-1 text-xl font-semibold" dir="auto">
           {qualifiedJob.title}
         </h2>
-        <p className="mt-2 text-sm text-muted">Your certificates meet every requirement for this opening.</p>
+        <p className="mt-2 text-sm text-muted">{t("Your certificates meet every requirement for this opening.")}</p>
         <Link href={`/jobs/${qualifiedJob.id}`} className={`${btn.primary} mt-4`}>
-          View and apply
+          {t("View and apply")}
         </Link>
       </Card>
     );
   return (
     <Card className="border-brand">
-      <p className="text-sm font-medium text-brand">{hasCourses ? "Ready for the next step" : "Start here"}</p>
-      <h2 className="mt-1 text-xl font-semibold">Pick a practical course</h2>
-      <p className="mt-2 text-sm text-muted">
-        Pass its assessments to earn a verified certificate that partner companies ask for in their job posts.
-      </p>
+      <p className="text-sm font-medium text-brand">{hasCourses ? t("Ready for the next step") : t("Start here")}</p>
+      <h2 className="mt-1 text-xl font-semibold">{t("Pick a practical course")}</h2>
+      <p className="mt-2 text-sm text-muted">{t("Pass its assessments to earn a verified certificate that partner companies ask for in their job posts.")}</p>
       <Link href="/courses" className={`${btn.primary} mt-4`}>
-        Browse courses
+        {t("Browse courses")}
       </Link>
     </Card>
   );
 }
 
-function UpdateItem({ u }: { u: Update }) {
-  const when = <span className="block text-xs text-muted">{fmtDate(u.at)}</span>;
+// Whole sentences per status, because word order differs between English and Arabic.
+const APPLICATION_UPDATE = {
+  shortlisted: m("{company} shortlisted you for {job}"),
+  hired: m("{company} hired you for {job}"),
+  rejected: m("{company} declined your application for {job}"),
+  submitted: m("{company} reopened your application for {job}"),
+};
+
+function UpdateItem({ u, t }: { u: Update; t: T }) {
+  const when = <span className="block text-xs text-muted">{t.date(u.at)}</span>;
   if (u.kind === "graded")
     return (
       <li className="text-sm">
         <Link href={`/learn/${u.courseId}`} className="hover:text-brand">
-          <strong dir="auto">{u.task}</strong> graded: {u.score}/{u.max}
+          {t("{task} graded: {score}/{max}", { task: u.task, score: u.score, max: u.max })}
         </Link>
         {u.feedback && (
           <span className="block text-muted" dir="auto">
@@ -234,16 +247,15 @@ function UpdateItem({ u }: { u: Update }) {
     return (
       <li className="text-sm">
         <Link href={`/verify/${u.code}`} className="hover:text-brand">
-          🎓 Certificate earned: <strong dir="auto">{u.course}</strong> ({u.score}%)
+          🎓 {t("Certificate earned: {course} ({score}%)", { course: u.course, score: u.score })}
         </Link>
         {when}
       </li>
     );
-  const verb = { shortlisted: "shortlisted you for", hired: "hired you for", rejected: "declined your application for", submitted: "reopened your application for" }[u.status];
   return (
     <li className="text-sm">
       <Link href={`/jobs/${u.jobId}`} className="hover:text-brand">
-        <bdi>{u.company}</bdi> {verb} <strong dir="auto">{u.job}</strong>
+        {t(APPLICATION_UPDATE[u.status], { company: u.company, job: u.job })}
       </Link>
       {when}
     </li>

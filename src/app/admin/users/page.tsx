@@ -4,16 +4,18 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireRole, type Role } from "@/lib/auth";
 import { ActionForm } from "@/components/action-form";
-import { Badge, PageHeader, fmtDate } from "@/components/ui";
+import { Badge, PageHeader } from "@/components/ui";
+import { getT } from "@/i18n/server";
+import { titled } from "@/i18n/metadata";
 import { setSuspended } from "../actions";
 
-export const metadata = { title: "Users" };
+export const generateMetadata = titled("Users");
 
 const ROLES: Role[] = ["student", "instructor", "company", "admin"];
 const STATUS_TONE = { active: "brand", pending: "warn", rejected: "danger", suspended: "danger" } as const;
 
 export default async function UsersPage({ searchParams }: PageProps<"/admin/users">) {
-  await requireRole("admin");
+  const [, t] = await Promise.all([requireRole("admin"), getT()]);
   const { role } = await searchParams;
   const filter = ROLES.find((r) => r === role);
   const rows = await db
@@ -25,26 +27,27 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
 
   return (
     <>
-      <PageHeader title="Users" subtitle={`${rows.length} shown`} />
-      <nav className="mb-4 flex flex-wrap gap-2 text-sm" aria-label="Filter by role">
+      <PageHeader title={t("Users")} subtitle={t("{n} shown", { n: rows.length })} />
+      <nav className="mb-4 flex flex-wrap gap-2 text-sm" aria-label={t("Filter by role")}>
         {[undefined, ...ROLES].map((r) => (
           <Link
             key={r ?? "all"}
             href={r ? `/admin/users?role=${r}` : "/admin/users"}
+            aria-current={filter === r ? "page" : undefined}
             className={`rounded-full border px-3 py-1 ${filter === r ? "border-brand text-brand" : "border-line text-muted"}`}
           >
-            {r ?? "all"}
+            {r ? t.label(r) : t("All")}
           </Link>
         ))}
       </nav>
       <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="w-full min-w-[640px] text-start text-sm">
           <thead className="border-b border-line text-muted">
             <tr>
-              <th className="p-3 font-medium">Name</th>
-              <th className="p-3 font-medium">Role</th>
-              <th className="p-3 font-medium">Status</th>
-              <th className="p-3 font-medium">Joined</th>
+              <th className="p-3 text-start font-medium">{t("Name")}</th>
+              <th className="p-3 text-start font-medium">{t("Role")}</th>
+              <th className="p-3 text-start font-medium">{t("Status")}</th>
+              <th className="p-3 text-start font-medium">{t("Joined")}</th>
               <th className="p-3" />
             </tr>
           </thead>
@@ -52,25 +55,29 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
             {rows.map((u) => (
               <tr key={u.id}>
                 <td className="p-3">
-                  {u.name}
-                  <div className="text-xs text-muted">{u.email}</div>
+                  <bdi>{u.name}</bdi>
+                  <div className="text-xs text-muted">
+                    <bdi>{u.email}</bdi>
+                  </div>
                 </td>
-                <td className="p-3">{u.role}</td>
+                <td className="p-3">{t.label(u.role)}</td>
                 <td className="p-3">
-                  <Badge tone={STATUS_TONE[u.status]}>{u.status}</Badge>
+                  <Badge tone={STATUS_TONE[u.status]}>{t.label(u.status)}</Badge>
                 </td>
-                <td className="p-3">{fmtDate(u.createdAt)}</td>
-                <td className="p-3 text-right">
+                <td className="p-3">{t.date(u.createdAt)}</td>
+                <td className="p-3 text-end">
                   {u.role !== "admin" && u.status === "active" && (
                     <ActionForm
                       action={setSuspended.bind(null, u.id, true)}
-                      submit="Suspend"
+                      submit={t("Suspend")}
                       variant="danger"
                       className=""
-                      confirm={`Suspend ${u.name}? They will be signed out and can't log in until reactivated.`}
+                      confirm={t("Suspend {name}? They will be signed out and can't log in until reactivated.", { name: u.name })}
                     />
                   )}
-                  {u.status === "suspended" && <ActionForm action={setSuspended.bind(null, u.id, false)} submit="Reactivate" variant="secondary" className="" />}
+                  {u.status === "suspended" && (
+                    <ActionForm action={setSuspended.bind(null, u.id, false)} submit={t("Reactivate")} variant="secondary" className="" />
+                  )}
                 </td>
               </tr>
             ))}

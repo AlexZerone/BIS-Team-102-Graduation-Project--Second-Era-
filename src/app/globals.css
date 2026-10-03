@@ -36,7 +36,7 @@
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans), var(--font-arabic), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -63,4 +63,16 @@ body {
 }
 form:has(input[name="role"][value="company"]:checked) .company-only {
   display: block;
+}
+
+/* Arabic: looser line height, and no letter-spacing (it breaks joined letters). */
+:lang(ar) body {
+  line-height: 1.7;
+}
+:lang(ar) .tracking-tight,
+:lang(ar) .tracking-widest {
+  letter-spacing: normal;
+}
+:lang(ar) .prose-text {
+  line-height: 1.9;
 }

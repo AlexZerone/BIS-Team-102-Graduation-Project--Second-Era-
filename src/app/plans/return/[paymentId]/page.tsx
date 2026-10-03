@@ -7,10 +7,12 @@ import { requireRole } from "@/lib/auth";
 import { PLANS } from "@/lib/plans";
 import { applyPaymobTransaction } from "@/server/payments";
 import { fieldsFromRedirect, paymobConfig, verifyTransaction } from "@/server/paymob";
-import { Card, PageHeader, btn, fmtDate } from "@/components/ui";
+import { Card, PageHeader, btn } from "@/components/ui";
+import { getT } from "@/i18n/server";
+import { titled } from "@/i18n/metadata";
 import { PaymentPoller } from "./poller";
 
-export const metadata = { title: "Payment" };
+export const generateMetadata = titled("Payment");
 
 /** Where Paymob sends the student back. The server callback normally settles the payment first. */
 export default async function PaymentReturnPage({ params, searchParams }: PageProps<"/plans/return/[paymentId]">) {
@@ -36,36 +38,39 @@ export default async function PaymentReturnPage({ params, searchParams }: PagePr
     }
   }
 
-  const plan = PLANS[payment.plan].name;
+  const t = await getT();
+  const plan = t(PLANS[payment.plan].name);
   if (payment.status === "paid") {
     const [profile] = await db.select({ until: studentProfiles.planExpiresAt }).from(studentProfiles).where(eq(studentProfiles.userId, user.id));
     return (
-      <Result title="Payment successful">
+      <Result title={t("Payment successful")}>
         <p>
-          You&apos;re now on the <strong>{plan}</strong> plan{profile?.until && <> until {fmtDate(profile.until)}</>}. Your receipt
-          number is <span className="font-mono">#{payment.id}</span>.
+          {profile?.until
+            ? t("You're now on the {plan} plan until {date}.", { plan, date: t.date(profile.until) })
+            : t("You're now on the {plan} plan.", { plan })}{" "}
+          {t("Your receipt number is")} <bdi className="font-mono">#{payment.id}</bdi>.
         </p>
         <Link href="/courses" className={btn.primary}>
-          Browse courses
+          {t("Browse courses")}
         </Link>
       </Result>
     );
   }
   if (payment.status === "failed" || declined)
     return (
-      <Result title="Payment didn't go through">
-        <p>You haven&apos;t been charged for the {plan} plan. You can try again with another card or wallet.</p>
+      <Result title={t("Payment didn't go through")}>
+        <p>{t("You haven't been charged for the {plan} plan. You can try again with another card or wallet.", { plan })}</p>
         <Link href="/plans" className={btn.primary}>
-          Back to plans
+          {t("Back to plans")}
         </Link>
       </Result>
     );
   return (
-    <Result title="Confirming your payment…">
-      <p>We&apos;re waiting for Paymob to confirm your {plan} plan payment. This page updates on its own.</p>
+    <Result title={t("Confirming your payment…")}>
+      <p>{t("We're waiting for Paymob to confirm your {plan} plan payment. This page updates on its own.", { plan })}</p>
       <PaymentPoller />
       <Link href="/dashboard" className={btn.secondary}>
-        Go to dashboard
+        {t("Go to dashboard")}
       </Link>
     </Result>
   );

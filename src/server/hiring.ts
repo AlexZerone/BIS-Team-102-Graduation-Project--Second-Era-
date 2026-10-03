@@ -25,7 +25,7 @@ export async function applyToJob(studentId: number, jobId: number, coverNote: st
     throw new DomainError("This job is no longer accepting applications.");
   const missing = await missingRequirements(studentId, jobId);
   if (missing.length)
-    throw new DomainError(`Earn these certificates first: ${missing.map((c) => c.title).join(", ")}.`);
+    throw new DomainError("Earn these certificates first: {list}.", { params: { list: missing.map((c) => c.title).join(", ") } });
   const created = await db
     .insert(applications)
     .values({ jobId, studentId, coverNote })

@@ -17,7 +17,7 @@ export async function enroll(studentId: number, courseId: number) {
   const [course] = await db.select().from(courses).where(eq(courses.id, courseId));
   if (!course || course.status !== "published") throw new DomainError("This course is not available.");
   if (!hasPlan(await studentPlan(studentId), course.requiredPlan))
-    throw new DomainError(`This course needs the ${PLANS[course.requiredPlan].name} plan or higher.`);
+    throw new DomainError("This course needs the {plan} plan or higher.", { params: { plan: { key: PLANS[course.requiredPlan].name } } });
   await db.insert(enrollments).values({ studentId, courseId }).onConflictDoNothing();
 }
 
@@ -50,7 +50,7 @@ export async function gradeSubmission(graderId: number, submissionId: number, sc
     .where(eq(submissions.id, submissionId));
   if (!row || row.instructorId !== graderId) throw new DomainError("Submission not found.");
   if (!Number.isInteger(score) || score < 0 || score > row.maxScore)
-    throw new DomainError(`Score must be a whole number between 0 and ${row.maxScore}.`);
+    throw new DomainError("Score must be a whole number between 0 and {max}.", { params: { max: row.maxScore }, field: "score" });
 
   await db
     .update(submissions)

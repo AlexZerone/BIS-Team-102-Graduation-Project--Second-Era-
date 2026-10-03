@@ -1,23 +1,31 @@
-/** A rule violation whose message is safe to show the user, optionally tied to a form field. */
+import { translate, type Params } from "@/i18n/translate";
+
+/**
+ * A rule violation that's safe to show the user. The message is an English template (also the
+ * translation key) plus values; ActionForm renders it in the user's language.
+ */
 export class DomainError extends Error {
   constructor(
-    message: string,
-    readonly field?: string,
+    readonly template: string,
+    readonly opts: { params?: Params; field?: string } = {},
   ) {
-    super(message);
+    super(translate("en", template, opts.params)); // readable in logs and tests
   }
 }
 
-/** Result of a form action. `field` names the input to highlight and focus. */
-export type ActionState = { error?: string; ok?: string; field?: string } | undefined;
+/** Result of a form action: an English template + values, and the field to highlight. */
+export type ActionState = { error?: string; ok?: string; params?: Params; field?: string } | undefined;
+
+type Ok = string | { ok: string; params: Params } | void;
 
 /** Run a mutation for useActionState: DomainErrors become form messages, everything else rethrows. */
-export async function attempt(fn: () => Promise<string | void>): Promise<ActionState> {
+export async function attempt(fn: () => Promise<Ok>): Promise<ActionState> {
   try {
     const ok = await fn();
-    return ok ? { ok } : {};
+    if (!ok) return {};
+    return typeof ok === "string" ? { ok } : ok;
   } catch (e) {
-    if (e instanceof DomainError) return { error: e.message, field: e.field };
+    if (e instanceof DomainError) return { error: e.template, params: e.opts.params, field: e.opts.field };
     throw e;
   }
 }

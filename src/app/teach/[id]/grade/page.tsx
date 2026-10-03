@@ -5,13 +5,15 @@ import { db } from "@/db";
 import { assessments, courses, submissions, users } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { ActionForm } from "@/components/action-form";
-import { Badge, Card, Empty, Field, PageHeader, fmtDate } from "@/components/ui";
+import { Badge, Card, Empty, Field, PageHeader } from "@/components/ui";
+import { getT } from "@/i18n/server";
+import { titled } from "@/i18n/metadata";
 import { gradeAction } from "../../actions";
 
-export const metadata = { title: "Grade submissions" };
+export const generateMetadata = titled("Grade submissions");
 
 export default async function GradePage({ params }: PageProps<"/teach/[id]/grade">) {
-  const user = await requireRole("instructor");
+  const [user, t] = await Promise.all([requireRole("instructor"), getT()]);
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
   const [course] = await db.select().from(courses).where(and(eq(courses.id, id), eq(courses.instructorId, user.id)));
@@ -28,9 +30,13 @@ export default async function GradePage({ params }: PageProps<"/teach/[id]/grade
   return (
     <>
       <PageHeader
-        title={`Grade · ${course.title}`}
-        subtitle="Ungraded work first. A certificate is issued automatically once all of a student's work is graded and passes."
-        action={<Link href={`/teach/${id}`} className="text-sm text-brand hover:underline">Back to course</Link>}
+        title={t("Grade · {course}", { course: course.title })}
+        subtitle={t("Ungraded work first. A certificate is issued automatically once all of a student's work is graded and passes.")}
+        action={
+          <Link href={`/teach/${id}`} className="text-sm text-brand hover:underline">
+            {t("Back to course")}
+          </Link>
+        }
       />
       {rows.length ? (
         <div className="space-y-4">
@@ -38,22 +44,40 @@ export default async function GradePage({ params }: PageProps<"/teach/[id]/grade
             <Card key={sub.id}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="font-semibold">
-                  {student} · {task}
+                  <bdi>{student}</bdi> · <bdi>{task}</bdi>
                 </h2>
-                {sub.gradedAt ? <Badge tone="brand">{sub.score}/{maxScore}</Badge> : <Badge tone="warn">Needs grading</Badge>}
+                {sub.gradedAt ? (
+                  <Badge tone="brand">
+                    <bdi>
+                      {sub.score}/{maxScore}
+                    </bdi>
+                  </Badge>
+                ) : (
+                  <Badge tone="warn">{t("Needs grading")}</Badge>
+                )}
               </div>
-              <p className="text-xs text-muted">Submitted {fmtDate(sub.submittedAt)}</p>
-              <p className="prose-text mt-3 rounded-md bg-background p-3 text-sm">{sub.answer}</p>
+              <p className="text-xs text-muted">{t("Submitted {date}", { date: t.date(sub.submittedAt) })}</p>
+              <p className="prose-text mt-3 rounded-md bg-background p-3 text-sm" dir="auto">
+                {sub.answer}
+              </p>
               {sub.link && (
-                <a href={sub.link} target="_blank" rel="noopener noreferrer nofollow" className="mt-2 inline-block break-all text-sm text-brand hover:underline">
+                <a href={sub.link} target="_blank" rel="noopener noreferrer nofollow" className="mt-2 inline-block break-all text-sm text-brand hover:underline" dir="ltr">
                   {sub.link}
                 </a>
               )}
               <div className="mt-4">
-                <ActionForm action={gradeAction.bind(null, id, sub.id)} submit={sub.gradedAt ? "Re-grade" : "Save grade"}>
+                <ActionForm action={gradeAction.bind(null, id, sub.id)} submit={sub.gradedAt ? t("Re-grade") : t("Save grade")}>
                   <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
-                    <Field label={`Score / ${maxScore}`} name="score" type="number" min={0} max={maxScore} defaultValue={sub.score ?? ""} required />
-                    <Field as="textarea" rows={3} label="Feedback" name="feedback" defaultValue={sub.feedback ?? ""} hint="The student sees this with their score." />
+                    <Field label={t("Score / {max}", { max: maxScore })} name="score" type="number" min={0} max={maxScore} defaultValue={sub.score ?? ""} required />
+                    <Field
+                      as="textarea"
+                      rows={3}
+                      label={t("Feedback")}
+                      name="feedback"
+                      defaultValue={sub.feedback ?? ""}
+                      dir="auto"
+                      hint={t("The student sees this with their score.")}
+                    />
                   </div>
                 </ActionForm>
               </div>
@@ -61,7 +85,7 @@ export default async function GradePage({ params }: PageProps<"/teach/[id]/grade
           ))}
         </div>
       ) : (
-        <Empty>No submissions yet.</Empty>
+        <Empty>{t("No submissions yet.")}</Empty>
       )}
     </>
   );

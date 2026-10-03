@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useId, useRef, type ReactNode } from "react";
 import type { ActionState } from "@/server/errors";
+import { useT } from "@/i18n/client";
 import { btn } from "./ui";
 
 type Props = {
@@ -19,6 +20,7 @@ type Props = {
 /** A form bound to a server action, showing its error/success message and pending state. */
 export function ActionForm({ action, children, submit, variant = "primary", className = "space-y-4", resetOnSuccess, confirm }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const t = useT();
   const ref = useRef<HTMLFormElement>(null);
   const messageId = useId();
 
@@ -56,10 +58,10 @@ export function ActionForm({ action, children, submit, variant = "primary", clas
       {children}
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className={btn[variant]}>
-          {pending ? "Working…" : submit}
+          {pending ? t("Working…") : submit}
         </button>
         <p id={messageId} aria-live="polite" className={`text-sm ${state?.error ? "text-danger" : "text-brand"}`}>
-          {state?.error ?? state?.ok}
+          {(state?.error || state?.ok) && t((state.error ?? state.ok)!, state.params)}
         </p>
       </div>
     </form>

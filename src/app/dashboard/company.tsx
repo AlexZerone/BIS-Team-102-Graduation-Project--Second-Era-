@@ -2,11 +2,13 @@ import Link from "next/link";
 import { count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, companies, courses, jobs } from "@/db/schema";
-import { Badge, Card, Empty, btn, fmtDate } from "@/components/ui";
+import { Badge, Card, Empty, btn } from "@/components/ui";
+import { getT } from "@/i18n/server";
 
 export async function CompanyDashboard({ userId }: { userId: number }) {
   const [company] = await db.select().from(companies).where(eq(companies.userId, userId));
-  const [myJobs, partnered] = await Promise.all([
+  const [t, myJobs, partnered] = await Promise.all([
+    getT(),
     db
       .select({ job: jobs, applicants: count(applications.id) })
       .from(jobs)
@@ -21,9 +23,11 @@ export async function CompanyDashboard({ userId }: { userId: number }) {
     <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
       <Card>
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold">{company.name} · Job postings</h2>
+          <h2 className="font-semibold">
+            <bdi>{company.name}</bdi> · {t("Job postings")}
+          </h2>
           <Link href="/company/jobs/new" className={btn.primary}>
-            Post a job
+            {t("Post a job")}
           </Link>
         </div>
         {myJobs.length ? (
@@ -31,15 +35,15 @@ export async function CompanyDashboard({ userId }: { userId: number }) {
             {myJobs.map(({ job, applicants }) => (
               <li key={job.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
                 <div>
-                  <Link href={`/company/jobs/${job.id}`} className="font-medium hover:text-brand">
+                  <Link href={`/company/jobs/${job.id}`} className="font-medium hover:text-brand" dir="auto">
                     {job.title}
                   </Link>
-                  <p className="text-muted">Posted {fmtDate(job.createdAt)}</p>
+                  <p className="text-muted">{t("Posted {date}", { date: t.date(job.createdAt) })}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge tone={job.isOpen ? "brand" : "neutral"}>{job.isOpen ? "open" : "closed"}</Badge>
+                  <Badge tone={job.isOpen ? "brand" : "neutral"}>{t.label(job.isOpen ? "open" : "closed")}</Badge>
                   <Link href={`/company/jobs/${job.id}`} className="text-brand hover:underline">
-                    {applicants} applicant{applicants === 1 ? "" : "s"}
+                    {t("Applicants: {n}", { n: applicants })}
                   </Link>
                 </div>
               </li>
@@ -47,26 +51,26 @@ export async function CompanyDashboard({ userId }: { userId: number }) {
           </ul>
         ) : (
           <div className="mt-4">
-            <Empty>Post an internship and require the certificates that matter to your team.</Empty>
+            <Empty>{t("Post an internship and require the certificates that matter to your team.")}</Empty>
           </div>
         )}
       </Card>
       <Card>
-        <h2 className="font-semibold">Courses you partner on</h2>
+        <h2 className="font-semibold">{t("Courses you partner on")}</h2>
         {partnered.length ? (
           <ul className="mt-3 space-y-1 text-sm">
             {partnered.map((c) => (
               <li key={c.id}>
-                <Link href={`/courses/${c.id}`} className="hover:text-brand">
+                <Link href={`/courses/${c.id}`} className="hover:text-brand" dir="auto">
                   {c.title}
                 </Link>{" "}
-                <span className="text-muted">({c.status})</span>
+                <span className="text-muted">({t.label(c.status)})</span>
               </li>
             ))}
           </ul>
         ) : (
           <p className="mt-3 text-sm text-muted">
-            Instructors can list your company as the industry partner on courses you help design.
+            {t("Instructors can list your company as the industry partner on courses you help design.")}
           </p>
         )}
       </Card>

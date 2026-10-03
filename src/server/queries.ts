@@ -24,4 +24,3 @@ export async function listJobs(where = visibleJob()) {
   return rows.map((r) => ({ ...r, requires: reqs.filter((q) => q.jobId === r.job.id) }));
 }
 
-export const JOB_TYPES = { internship: "Internship", full_time: "Full-time", part_time: "Part-time" } as const;
