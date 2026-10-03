@@ -7,8 +7,7 @@ import { assessments, companies, courses, jobRequirements, jobs, lessons, studen
 import { hashPassword } from "@/lib/password";
 import { enroll, gradeSubmission, submitAssessment } from "@/server/learning";
 import { applyToJob } from "@/server/hiring";
-
-const DEMO_PASSWORD = "SecondEra-demo-2026";
+import { DEMO_PASSWORD } from "./demo-accounts";
 
 await migrate();
 

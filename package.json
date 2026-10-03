@@ -13,7 +13,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.mts",
     "db:seed": "tsx --env-file-if-exists=.env scripts/seed.mts",
-    "db:reset": "node -e \"require('fs').rmSync('.data/pglite',{recursive:true,force:true})\" && npm run db:seed"
+    "db:reset": "node -e \"require('fs').rmSync('.data/pglite',{recursive:true,force:true})\" && npm run db:seed",
+    "e2e:server": "node -e \"for (const d of ['.data/e2e', '.data/e2e-uploads', '.data/e2e-mail.jsonl']) require('fs').rmSync(d, { recursive: true, force: true })\" && tsx scripts/seed.mts && next start -p 3100",
+    "test:e2e": "next build && playwright test"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -25,6 +27,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.19.1",
     "@types/pg": "^8.23.1",

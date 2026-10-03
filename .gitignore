@@ -96,3 +96,7 @@ next-env.d.ts
 
 # Local embedded database and uploads
 .data/
+
+# Playwright
+test-results/
+playwright-report/
