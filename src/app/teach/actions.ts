@@ -10,6 +10,8 @@ import { requireRole } from "@/lib/auth";
 import { fieldError, id, optionalLink } from "@/lib/validation";
 import { gradeSubmission } from "@/server/learning";
 import { DomainError, attempt, type ActionState } from "@/server/errors";
+import { assertUnlocked, ownCourseWithLocks } from "@/server/courses";
+import { audit } from "@/server/audit";
 
 const courseSchema = z.object({
   title: z.string().trim().min(3, "Title is too short.").max(120),
@@ -31,15 +33,6 @@ async function checkPartner(partnerId: number | null) {
   if (!ok) throw new DomainError("Choose an approved partner company.");
 }
 
-/** The instructor's own course, and only while it can still change (draft or rejected). */
-async function editableCourse(instructorId: number, courseId: number) {
-  const [c] = await db.select().from(courses).where(and(eq(courses.id, courseId), eq(courses.instructorId, instructorId)));
-  if (!c) throw new DomainError("Course not found.");
-  if (c.status === "pending" || c.status === "published")
-    throw new DomainError("Courses under review or published can't be edited, so issued certificates stay meaningful.");
-  return c;
-}
-
 export async function createCourse(_: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("instructor");
   const parsed = courseSchema.safeParse(Object.fromEntries(form));
@@ -55,12 +48,20 @@ export async function createCourse(_: ActionState, form: FormData): Promise<Acti
 
 export async function updateCourse(courseId: number, _: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole("instructor");
-  const parsed = courseSchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return fieldError(parsed.error);
   return attempt(async () => {
-    await editableCourse(user.id, courseId);
+    const { course, locks } = await ownCourseWithLocks(user.id, courseId);
+    assertUnlocked(locks, "details");
+    // Locked fields are shown disabled (so not submitted); keep their current values.
+    const input = { ...Object.fromEntries(form), ...(locks.title && { title: course.title }), ...(locks.passingScore && { passingScore: course.passingScore }) };
+    const parsed = courseSchema.safeParse(input);
+    if (!parsed.success) {
+      const { error, field } = fieldError(parsed.error);
+      throw new DomainError(error, field);
+    }
     await checkPartner(parsed.data.partnerCompanyId);
     await db.update(courses).set(parsed.data).where(eq(courses.id, courseId));
+    // Published edits go live without re-review, so leave a trail for admins.
+    if (course.status === "published") await audit(user.id, "course.edit", `course:${courseId}`);
     revalidatePath(`/teach/${courseId}`);
     return "Saved.";
   });
@@ -77,11 +78,23 @@ export async function addLesson(courseId: number, _: ActionState, form: FormData
   const parsed = lessonSchema.safeParse({ title: form.get("title") ?? "", body: form.get("body") ?? "", videoUrl: form.get("videoUrl") ?? "" });
   if (!parsed.success) return fieldError(parsed.error);
   return attempt(async () => {
-    await editableCourse(user.id, courseId);
+    assertUnlocked((await ownCourseWithLocks(user.id, courseId)).locks, "lessons");
     const [{ last }] = await db.select({ last: max(lessons.position) }).from(lessons).where(eq(lessons.courseId, courseId));
     await db.insert(lessons).values({ ...parsed.data, courseId, position: (last ?? 0) + 1 });
     revalidatePath(`/teach/${courseId}`);
     return "Lesson added.";
+  });
+}
+
+export async function updateLesson(courseId: number, lessonId: number, _: ActionState, form: FormData): Promise<ActionState> {
+  const user = await requireRole("instructor");
+  const parsed = lessonSchema.safeParse({ title: form.get("title") ?? "", body: form.get("body") ?? "", videoUrl: form.get("videoUrl") ?? "" });
+  if (!parsed.success) return fieldError(parsed.error);
+  return attempt(async () => {
+    assertUnlocked((await ownCourseWithLocks(user.id, courseId)).locks, "lessons");
+    await db.update(lessons).set(parsed.data).where(and(eq(lessons.id, lessonId), eq(lessons.courseId, courseId)));
+    revalidatePath(`/teach/${courseId}`);
+    return "Lesson saved.";
   });
 }
 
@@ -96,7 +109,7 @@ export async function addAssessment(courseId: number, _: ActionState, form: Form
   const parsed = assessmentSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return fieldError(parsed.error);
   return attempt(async () => {
-    await editableCourse(user.id, courseId);
+    assertUnlocked((await ownCourseWithLocks(user.id, courseId)).locks, "assessments");
     await db.insert(assessments).values({ ...parsed.data, courseId });
     revalidatePath(`/teach/${courseId}`);
     return "Assessment added.";
@@ -106,7 +119,7 @@ export async function addAssessment(courseId: number, _: ActionState, form: Form
 export async function removeItem(courseId: number, kind: "lesson" | "assessment", itemId: number): Promise<ActionState> {
   const user = await requireRole("instructor");
   return attempt(async () => {
-    await editableCourse(user.id, courseId);
+    assertUnlocked((await ownCourseWithLocks(user.id, courseId)).locks, kind === "lesson" ? "lessons" : "assessments");
     const table = kind === "lesson" ? lessons : assessments;
     await db.delete(table).where(and(eq(table.id, itemId), eq(table.courseId, courseId)));
     revalidatePath(`/teach/${courseId}`);
@@ -116,7 +129,8 @@ export async function removeItem(courseId: number, kind: "lesson" | "assessment"
 export async function submitForReview(courseId: number): Promise<ActionState> {
   const user = await requireRole("instructor");
   return attempt(async () => {
-    await editableCourse(user.id, courseId);
+    const { course } = await ownCourseWithLocks(user.id, courseId);
+    if (course.status !== "draft" && course.status !== "rejected") throw new DomainError("Only drafts and courses sent back for changes can be submitted.");
     const [[l], [a]] = await Promise.all([
       db.select({ n: count() }).from(lessons).where(eq(lessons.courseId, courseId)),
       db.select({ n: count() }).from(assessments).where(eq(assessments.courseId, courseId)),

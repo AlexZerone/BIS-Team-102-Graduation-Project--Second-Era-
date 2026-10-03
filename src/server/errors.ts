@@ -1,5 +1,12 @@
-/** A rule violation whose message is safe to show the user. */
-export class DomainError extends Error {}
+/** A rule violation whose message is safe to show the user, optionally tied to a form field. */
+export class DomainError extends Error {
+  constructor(
+    message: string,
+    readonly field?: string,
+  ) {
+    super(message);
+  }
+}
 
 /** Result of a form action. `field` names the input to highlight and focus. */
 export type ActionState = { error?: string; ok?: string; field?: string } | undefined;
@@ -10,7 +17,7 @@ export async function attempt(fn: () => Promise<string | void>): Promise<ActionS
     const ok = await fn();
     return ok ? { ok } : {};
   } catch (e) {
-    if (e instanceof DomainError) return { error: e.message };
+    if (e instanceof DomainError) return { error: e.message, field: e.field };
     throw e;
   }
 }

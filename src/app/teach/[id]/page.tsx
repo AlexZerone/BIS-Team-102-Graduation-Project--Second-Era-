@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { assessments, courses, lessons } from "@/db/schema";
+import { assessments, lessons } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { ActionForm } from "@/components/action-form";
 import { Badge, Card, Field, PageHeader } from "@/components/ui";
 import { CourseFields } from "../course-fields";
 import { STATUS_TONE } from "../status";
-import { addAssessment, addLesson, removeItem, submitForReview, updateCourse } from "../actions";
+import { addAssessment, addLesson, removeItem, submitForReview, updateCourse, updateLesson } from "../actions";
+import { ownCourseWithLocks } from "@/server/courses";
+import { DomainError } from "@/server/errors";
 
 export const metadata = { title: "Edit course" };
 
@@ -16,13 +18,16 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
   const user = await requireRole("instructor");
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const [course] = await db.select().from(courses).where(and(eq(courses.id, id), eq(courses.instructorId, user.id)));
-  if (!course) notFound();
+  const owned = await ownCourseWithLocks(user.id, id).catch((e) => {
+    if (e instanceof DomainError) notFound();
+    throw e;
+  });
+  const { course, locks, enrolled } = owned;
   const [lessonList, tasks] = await Promise.all([
     db.select().from(lessons).where(eq(lessons.courseId, id)).orderBy(asc(lessons.position)),
     db.select().from(assessments).where(eq(assessments.courseId, id)).orderBy(asc(assessments.id)),
   ]);
-  const editable = course.status === "draft" || course.status === "rejected";
+  const canSubmit = course.status === "draft" || course.status === "rejected";
 
   return (
     <>
@@ -39,7 +44,7 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
             </Link>
           </span>
         }
-        action={editable && <ActionForm action={submitForReview.bind(null, id)} submit="Submit for review" className="" />}
+        action={canSubmit && <ActionForm action={submitForReview.bind(null, id)} submit="Submit for review" className="" />}
       />
 
       {course.status === "rejected" && course.rejectionReason && (
@@ -49,20 +54,29 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
           </p>
         </Card>
       )}
-      {!editable && (
+      {locks.reviewing ? (
         <Card className="mb-6">
-          <p className="text-sm text-muted">
-            This course is {course.status === "pending" ? "waiting for admin review" : "published"} and locked for editing.
-          </p>
+          <p className="text-sm text-muted">This course is waiting for admin review. You can edit it again once it&apos;s decided.</p>
         </Card>
+      ) : (
+        course.status === "published" && (
+          <Card className="mb-6">
+            <p className="text-sm text-muted">
+              Published: changes go live immediately.{" "}
+              {enrolled > 0
+                ? `${enrolled} student${enrolled === 1 ? " is" : "s are"} enrolled, so assessments and the pass mark are locked; lessons and details stay editable.`
+                : "No one has enrolled yet, so everything is still editable."}
+            </p>
+          </Card>
+        )
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <h2 className="mb-4 font-semibold">Details</h2>
-          {editable ? (
+          {!locks.details ? (
             <ActionForm action={updateCourse.bind(null, id)} submit="Save details">
-              <CourseFields course={course} />
+              <CourseFields course={course} locks={locks} />
             </ActionForm>
           ) : (
             <p className="prose-text text-sm">{course.description}</p>
@@ -74,23 +88,37 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
             <h2 className="font-semibold">Lessons</h2>
             <ol className="mt-3 space-y-2 text-sm">
               {lessonList.map((l) => (
-                <li key={l.id} className="flex items-center justify-between gap-2">
-                  <span>
-                    {l.position}. {l.title}
-                  </span>
-                  {editable && (
-                    <ActionForm
-                      action={removeItem.bind(null, id, "lesson", l.id)}
-                      submit="Remove"
-                      variant="danger"
-                      className=""
-                      confirm={`Remove the lesson "${l.title}"? This can't be undone.`}
-                    />
+                <li key={l.id}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span>
+                      {l.position}. {l.title}
+                    </span>
+                    {!locks.lessons && (
+                      <ActionForm
+                        action={removeItem.bind(null, id, "lesson", l.id)}
+                        submit="Remove"
+                        variant="danger"
+                        className=""
+                        confirm={`Remove the lesson "${l.title}"? This can't be undone.`}
+                      />
+                    )}
+                  </div>
+                  {!locks.lessons && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-sm text-brand">Edit lesson</summary>
+                      <div className="mt-3">
+                        <ActionForm action={updateLesson.bind(null, id, l.id)} submit="Save lesson">
+                          <Field label="Title" name="title" defaultValue={l.title} required />
+                          <Field as="textarea" label="Content" name="body" defaultValue={l.body} required rows={6} />
+                          <Field label="Video link (optional)" name="videoUrl" type="url" defaultValue={l.videoUrl ?? ""} />
+                        </ActionForm>
+                      </div>
+                    </details>
                   )}
                 </li>
               ))}
             </ol>
-            {editable && (
+            {!locks.lessons && (
               <details className="mt-4">
                 <summary className="cursor-pointer text-sm font-medium text-brand">Add a lesson</summary>
                 <div className="mt-3">
@@ -112,7 +140,7 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
                   <span>
                     {t.title} · {t.maxScore} pts
                   </span>
-                  {editable && (
+                  {!locks.assessments && (
                     <ActionForm
                       action={removeItem.bind(null, id, "assessment", t.id)}
                       submit="Remove"
@@ -124,7 +152,10 @@ export default async function EditCoursePage({ params }: PageProps<"/teach/[id]"
                 </li>
               ))}
             </ul>
-            {editable && (
+            {locks.assessments && !locks.reviewing && (
+              <p className="mt-3 text-xs text-muted">Locked because students are enrolled and graded against these.</p>
+            )}
+            {!locks.assessments && (
               <details className="mt-4">
                 <summary className="cursor-pointer text-sm font-medium text-brand">Add an assessment</summary>
                 <div className="mt-3">

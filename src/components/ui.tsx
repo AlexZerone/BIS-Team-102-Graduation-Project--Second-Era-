@@ -41,7 +41,7 @@ export function Empty({ children }: { children: ReactNode }) {
 
 // 16px text on phones stops iOS zooming into fields; aria-invalid is set by ActionForm.
 const inputClass =
-  "mt-1 block w-full rounded-md border border-field bg-surface px-3 py-2 text-base sm:text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand aria-invalid:border-danger aria-invalid:ring-1 aria-invalid:ring-danger";
+  "mt-1 block w-full rounded-md border border-field bg-surface px-3 py-2 text-base sm:text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand aria-invalid:border-danger aria-invalid:ring-1 aria-invalid:ring-danger disabled:cursor-not-allowed disabled:bg-background disabled:text-muted";
 
 type FieldProps = { label: string; name: string; hint?: string } & (
   | ({ as?: "input" } & ComponentProps<"input">)
